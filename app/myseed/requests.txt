@@ -1,0 +1,32 @@
+    CREATE TABLE IF NOT EXISTS countries (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name_eng VARCHAR(100) NOT NULL,
+    name_hun VARCHAR(100) NOT NULL,
+    is_eu_country boolean NOT NULL
+    )
+
+    CREATE TABLE IF NOT EXISTS cities (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name_eng VARCHAR(100) NOT NULL,
+    name_hun VARCHAR(100) NOT NULL,
+    country_id UUID NOT NULL,
+
+    FOREIGN KEY (country_id) references countries (id)
+    )
+
+    ALTER TABLE cities 
+        ADD COLUMN IF NOT EXISTS expeditor_code VARCHAR(12) NOT NULL
+
+    ALTER TABLE countries ALTER COLUMN name_hun DROP NOT NULL
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    INSERT INTO countries (name_eng, is_eu_country) VALUES 
+('Albania', 	'FALSE');
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO cities (expeditor_code, name_eng, country_id) VALUES
+('ILL01211', 	'Burgstaedt', 	'd3d25af9-669e-4a45-8af7-884a48de165d'),
+
+
+
+    

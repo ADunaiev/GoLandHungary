@@ -134,6 +134,61 @@ export async function authenticate(
       }
       throw error;
     }
-  }
+}
+
+const CustomerFormSchema = z.object({
+    id: z.string(),
+    name: z.string({
+        invalid_type_error: 'Please select a customer.',
+    }),
+    email: z.string({
+        invalid_type_error: 'Please enter valid email.'
+    }).email(),
+    image_url: z.string({
+        invalid_type_error: 'Please enter valid url.'
+    }),
+});
+
+const CreateCustomer = CustomerFormSchema.omit({id:true});
+
+export type CustomerState = {
+    errors?: {
+      name?: string[];
+      email?: string[];
+      image_url?: string[];
+    };
+    message?: string | null;
+  };
+
+export async function createCustomer(prevState: CustomerState, formData: FormData) {
+    const validatedFields = CreateCustomer.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        image_url: formData.get('image_url'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+          errors: validatedFields.error.flatten().fieldErrors,
+          message: 'Missing Fields. Failed to Create Customer.',
+        };
+      }
+
+    const { name, email, image_url } = validatedFields.data;
+
+    try{
+        await sql`
+            INSERT INTO customers (name, email, image_url)
+            VALUES (${name}, ${email}, ${image_url})
+        `;
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Create Customer.',
+        };
+    }
+
+    revalidatePath('/dashboard/customers');
+    redirect('/dashboard/customers');
+}
 
 
