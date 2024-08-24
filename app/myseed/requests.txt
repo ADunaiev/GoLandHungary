@@ -28,5 +28,251 @@ INSERT INTO cities (expeditor_code, name_eng, country_id) VALUES
 ('ILL01211', 	'Burgstaedt', 	'd3d25af9-669e-4a45-8af7-884a48de165d'),
 
 
+CREATE TABLE IF NOT EXISTS organisations (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(100) NOT NULL,
+country_id UUID NOT NULL,
+national_currency_id UUID NOT NULL,
+managerial_currency_id UUID NOT NULL,
+ceo_name VARCHAR(255),
+code VARCHAR(20) NOT NULL,
+name_hun VARCHAR(100)
+)
 
-    
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO organisations (
+    name_eng, 
+    country_id, 
+    national_currency_id, 
+    managerial_currency_id,
+    ceo_name,
+    code,
+    name_hun,
+    address,
+    vat_number_local,
+    vat_number_eu,
+    email,
+    phone) VALUES 
+(   
+    'GOLAND Hungary Kft',
+    '6a3209ec-42e7-4a5b-ab4e-eaa88d1a34df',
+    '35dfb43b-df34-4b0a-a43c-7f6647739142',
+    '4254362c-47ec-4418-80d3-eea7073b1e74',
+    'Olena Lavriukova',
+    '01-09-433969',
+    'GOLAND Hungary Kft',
+    '1064 Budapest, Izabella utca 68/B A. lház. Fsz. 5. ajtó',
+    '32622441-2-42',
+    'HU32622441',
+    'Elavrykova@goland.hu',
+    '+36707814751');
+
+
+CREATE TABLE IF NOT EXISTS currencies (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(100) NOT NULL,
+short_name VARCHAR(10) NOT NULL,
+name_hun VARCHAR(100)
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO currencies (
+    name_eng,
+    short_name 
+) VALUES 
+(   
+    'US Dollar',
+    'USD'
+);
+
+CREATE TABLE IF NOT EXISTS services (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(100) NOT NULL,
+name_hun VARCHAR(100)
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO services (name_eng) VALUES 
+('Railway cost'),
+('Trucking cost'),
+('Sea-freight cost'),
+('Air-freight cost'),
+('Handling cost'),
+('Storage cost'),
+('Demurrage cost');
+
+CREATE TABLE IF NOT EXISTS transport_types (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(20) NOT NULL,
+name_hun VARCHAR(50)
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO transport_types (name_eng) VALUES 
+('Air'),
+('Auto'),
+('Railway'),
+('Sea');
+
+CREATE TABLE IF NOT EXISTS routes (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+start_city_id UUID NOT NULL,
+end_city_id UUID NOT NULL,
+transport_type_id UUID NOT NULL
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO transport_types (name_eng) VALUES 
+('Air'),
+('Auto'),
+('Railway'),
+('Sea');
+
+CREATE TABLE IF NOT EXISTS vehicle_types (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(100) NOT NULL
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO vehicles (name_eng) VALUES 
+('Truck'),
+('Vessel'),
+('Wagon'),
+('Plane');
+
+CREATE TABLE IF NOT EXISTS vehicles (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+number VARCHAR(30) NOT NULL,
+transport_type_id UUID NOT NULL,
+vehicle_type_id UUID NOT NULL
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO vehicles (number, transport_type_id, vehicle_type_id) VALUES 
+('HH8900HH', '24825e56-8c36-4895-82a7-6f438b5b35ab', '4297c040-7550-4bd6-b23d-ab78d9f18e62');
+
+
+CREATE TABLE IF NOT EXISTS unit_types (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(50) NOT NULL
+)
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+INSERT INTO unit_types (name_eng) VALUES 
+('Container'),
+('Trailer'),
+('Pallet');
+
+CREATE TABLE IF NOT EXISTS customers_agreements (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+number VARCHAR(50) NOT NULL,
+date DATE NOT NULL,
+validity DATE,
+organisation_id UUID NOT NULL,
+customer_id UUID NOT NULL
+)
+
+CREATE TABLE IF NOT EXISTS shipments (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+date DATE NOT NULL,
+customer_id UUID NOT NULL,
+customer_reference VARCHAR(50),
+sale_id UUID NOT NULL,
+documentation_id UUID NOT NULL,
+organisation_id UUID NOT NULL
+)
+
+CREATE TABLE IF NOT EXISTS shipment_units (
+shipment_id UUID,
+unit_id UUID,
+PRIMARY KEY (shipment_id, unit_id)
+)
+
+CREATE TABLE IF NOT EXISTS shipment_routes (
+shipment_id UUID,
+route_id UUID,
+start_day DATE,
+end_date DATE,
+PRIMARY KEY (shipment_id, route_id)
+)
+
+CREATE TABLE IF NOT EXISTS vat_rates (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(50) NOT NULL,
+name_hun VARCHAR(50),
+description_eng VARCHAR(255)
+)
+
+CREATE TABLE IF NOT EXISTS rates (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+route_id UUID NOT NULL,
+service_id UUID NOT NULL,
+rate INT NOT NULL,
+currency_id UUID NOT NULL,
+shipment_id UUID NOT NULL,
+quantity INT NOT NULL,
+vat_rate_id UUID NOT NULL,
+amount INT NOT NULL
+)
+
+CREATE TABLE IF NOT EXISTS invoice_rates (
+invoice_id UUID,
+rate_id UUID,
+PRIMARY KEY (invoice_id, rate_id)
+)
+
+CREATE TABLE IF NOT EXISTS suppliers (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+name_eng VARCHAR(100) NOT NULL,
+email VARCHAR(100) NOT NULL,
+code VARCHAR(50),
+agreement_id UUID,
+name_hun VARCHAR(100),
+address_eng VARCHAR(255),
+address_hun VARCHAR(255)
+)
+
+CREATE TABLE IF NOT EXISTS supplier_agreements (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+number VARCHAR(50) NOT NULL,
+date DATE NOT NULL,
+validity DATE,
+organisation_id UUID NOT NULL,
+supplier_id UUID NOT NULL
+)
+
+CREATE TABLE IF NOT EXISTS supplier_invoices (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+number VARCHAR(32) NOT NULL,
+date DATE NOT NULL,
+supplier_id UUID NOT NULL,
+agreement_id UUID,
+remarks VARCHAR(255),
+status VARCHAR(50) NOT NULL,
+amount INT NOT NULL,
+currency_id UUID NOT NULL,
+amount_wo_vat INT NOT NULL,
+amount_managerial NOT NULL,
+amount_managerial_wo_VAT NOT NULL
+)
+
+CREATE TABLE IF NOT EXISTS supplier_invoice_rates (
+supplier_invoice_id UUID NOT NULL,
+rate_id UUID NOT NULL,
+PRIMARY KEY (supplier_invoice_id, rate_id)
+)
+
+CREATE TABLE IF NOT EXISTS links_to_income_invoices (
+supplier_invoice_id UUID NOT NULL,
+invoice_id UUID NOT NULL,
+amount INT NOT NULL,
+PRIMARY KEY (supplier_invoice_id, invoice_id)
+)
+
+CREATE TABLE IF NOT EXISTS currency_rates (
+id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+currency_id UUID NOT NULL,
+date DATE NOT NULL,
+organisation_id UUID NOT NULL,
+rate INT NOT NULL
+)
