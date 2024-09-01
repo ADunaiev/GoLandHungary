@@ -1,11 +1,15 @@
 import { sql } from '@vercel/postgres';
 import {
+  CustomerAgreement,
+  CurrencyField,
   CustomerField,
   CustomersTableType,
   InvoiceForm,
   InvoicesTable,
   LatestInvoiceRaw,
   Revenue,
+  CustomerAgreementField,
+  OrganisationField,
 } from './definitions';
 import { formatCurrency } from './utils';
 
@@ -183,6 +187,42 @@ export async function fetchCustomers() {
   }
 }
 
+export async function fetchCurrencies() {
+  try {
+    const data = await sql<CurrencyField>`
+      SELECT
+        id,
+        short_name
+      FROM currencies
+      ORDER BY short_name ASC
+    `;
+
+    const currencies = data.rows;
+    return currencies;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch currencies.');
+  }
+}
+
+export async function fetchOrganisations() {
+  try {
+    const data = await sql<OrganisationField>`
+      SELECT
+        id,
+        name_eng
+      FROM organisations
+      ORDER BY name_eng ASC
+    `;
+
+    const organisations = data.rows;
+    return organisations;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch organisations.');
+  }
+}
+
 export async function fetchFilteredCustomers(query: string) {
   try {
     const data = await sql<CustomersTableType>`
@@ -213,5 +253,55 @@ export async function fetchFilteredCustomers(query: string) {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
+  }
+}
+
+export async function fetchAgreementsByCusomerIdAndOrganisationId(
+        customer_id: string, 
+        organisation_id: string
+) {
+  try {
+    const data = await sql<CustomerAgreementField>`
+    SELECT ca.id, ca.number ||' dd. ' || ca.date as number_and_date
+    FROM customers_agreements as ca
+    LEFT JOIN customers as c
+    ON ca.customer_id = c.id
+    WHERE cast(ca.organisation_id as text) ILIKE ${`%${organisation_id}}%`} OR 
+    cast(ca.customer_id as text) ILIKE ${`%${customer_id}%`}
+    ORDER BY ca.date ASC
+	  `;
+
+    const agreements = data.rows;
+
+    return agreements;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch agreements by customerId and organisationId.');
+  }
+}
+
+export async function fetchAgreementsByCusomerNameAndOrganisationName(
+  customer_name: string, 
+  organisation_name: string
+) {
+  try {
+    const data = await sql<CustomerAgreementField>`
+    SELECT ca.id, ca.number ||' dd. ' || ca.date as number_and_date
+    FROM customers_agreements as ca
+    LEFT JOIN customers as c
+    ON ca.customer_id = c.id
+    LEFT JOIN organisations as o
+    ON ca.organisation_id = o.id
+    WHERE cast(o.name_eng as text) ILIKE ${`%${organisation_name}%`} AND 
+    cast(c.name as text) ILIKE ${`%${customer_name}%`}
+    ORDER BY ca.date ASC
+    `;
+
+    const agreements = data.rows;
+
+    return agreements;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch agreements by customerId and organisationId.');
   }
 }

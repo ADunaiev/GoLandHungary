@@ -80,9 +80,40 @@ export type CustomerField = {
   name: string;
 };
 
+export type Currency = {
+  id: string;
+  name_eng: string;
+  short_name: string;
+  name_hun: string;
+};
+
+export type CurrencyField = {
+  id: string;
+  short_name: string;
+};
+
+export type OrganisationField = {
+  id: string;
+  name_eng: string;
+};
+
 export type InvoiceForm = {
   id: string;
   customer_id: string;
   amount: number;
   status: 'pending' | 'paid';
 };
+
+export type CustomerAgreement = {
+  id: string;
+  number: string;
+  date: string;
+  validity: string;
+  organisation_id: string;
+  customer_id: string;
+};
+
+export type CustomerAgreementField = {
+  id: string;
+  number_and_date: string;
+}

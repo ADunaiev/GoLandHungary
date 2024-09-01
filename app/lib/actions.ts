@@ -1,12 +1,12 @@
 'use server';
 
-import { z } from 'zod';
+import { number, z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { error } from 'console';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import { InvoiceFormSchema } from './schemas/schema';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -22,7 +22,6 @@ const FormSchema = z.object({
     date: z.string(),
 });
 
-const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
 export type State = {
@@ -34,32 +33,48 @@ export type State = {
     message?: string | null;
   };
 
-export async function createInvoice(prevState: State, formData: FormData) {
-    const validatedFields = CreateInvoice.safeParse({
-        customerId: formData.get('customerId'),
-        amount: formData.get('amount'),
-        status: formData.get('status'),
+type InvoiceType = z.infer<typeof InvoiceFormSchema>;
+
+export async function createInvoice(formData: InvoiceType) {
+
+    const validatedFields = InvoiceFormSchema.safeParse({
+        customerId: formData.customerId,
+        amount: formData.amount,
+        status: formData.status,
+        number: formData.number,
+        date: formData.date,
+        agreement_id: formData.agreement_id,
+        amount_wo_vat: formData.amount_wo_vat,
+        vat_amount: formData.vat_amount,
+        currency_id: formData.currency_id,
+        organisation_id: formData.organisation_id,
+        remarks: formData.remarks,
     });
 
     if (!validatedFields.success) {
+        
         return {
-          errors: validatedFields.error.flatten().fieldErrors,
-          message: 'Missing Fields. Failed to Create Invoice.',
+          success: false,
+          error: validatedFields.error.format(),
         };
       }
 
-    const { customerId, amount, status } = validatedFields.data;
+    const { customerId, amount, status, number, date, agreement_id, amount_wo_vat, vat_amount, currency_id, organisation_id, remarks } = validatedFields.data;
+
     const amountInCents = amount * 100;
-    const date = new Date().toISOString().split('T')[0];
+    const amountWoVatInCents = amount_wo_vat * 100;
+    const amountVatInCents = vat_amount * 100;
+    const formatedDate = date.toISOString().split('T')[0];
 
     try{
         await sql`
-            INSERT INTO invoices (customer_id, amount, status, date)
-            VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+            INSERT INTO invoices (customer_id, amount, status, number, date, agreement_id, amount_wo_vat, vat_amount, currency_id, organisation_id, remarks)
+            VALUES (${customerId}, ${amountInCents}, ${status}, ${number}, ${formatedDate}, ${agreement_id}, ${amountWoVatInCents}, ${amountVatInCents}, ${currency_id}, ${organisation_id}, ${remarks})
         `;
+
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Create Invoice.',
+            message: 'Database Error: Failed to Create Invoice.'
         };
     }
 
