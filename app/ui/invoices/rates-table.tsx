@@ -1,4 +1,6 @@
 export default async function RatesTable({invoice_id}:{invoice_id: string}) {
+
+  /*
     const rates = await fetchIvoiceRates(invoice_id);
     return (
         <div className="mt-6 flow-root">
@@ -108,5 +110,5 @@ export default async function RatesTable({invoice_id}:{invoice_id: string}) {
           </div>
         </div>
       );
-    
+    */
 }
