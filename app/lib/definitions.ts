@@ -117,3 +117,33 @@ export type CustomerAgreementField = {
   id: string;
   number_and_date: string;
 }
+
+export type Rate = {
+  id: string;
+  shipment_id: string;
+  service_id: string;
+  rate: number;
+  currency_id: string;
+  vat_rate_id: string;
+  route_id: string;
+  quantity: number;
+};
+
+export type RateTable = {
+  id: string;
+  shipment_id: string;
+  shipment_number: string;
+  route_id: string;
+  start_point_name: string;
+  end_point_name: string;
+  service_id: string;
+  service_name: string;
+  rate: number;
+  currency_id: string;
+  currency_name: string;
+  vat_rate_id: string;
+  vat_rate_rate: number;
+  vat_rate_name: string;
+  quantity: number;
+};
+

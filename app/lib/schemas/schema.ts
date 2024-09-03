@@ -27,8 +27,7 @@ export const InvoiceFormSchema = z.object({
     }),
     vat_amount: z.coerce
         .number({message: 'Please enter number'})
-        .nonnegative({message: 'Amount could not be negative'})
-        .min(1, {message: 'Please enter amount'}),
+        .nonnegative("Amount should be not negative"),
     /*
     amount_managerial_wo_vat: z.coerce.number().
         gt(0, { message: 'Amount should be greater than 0.'}),

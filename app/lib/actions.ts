@@ -45,7 +45,7 @@ export async function createInvoice(formData: InvoiceType) {
         date: formData.date,
         agreement_id: formData.agreement_id,
         amount_wo_vat: formData.amount_wo_vat,
-        vat_amount: formData.vat_amount,
+        vat_amount: formData.vat_amount || 0,
         currency_id: formData.currency_id,
         organisation_id: formData.organisation_id,
         remarks: formData.remarks,
