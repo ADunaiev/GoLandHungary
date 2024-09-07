@@ -10,6 +10,11 @@ import {
   Revenue,
   CustomerAgreementField,
   OrganisationField,
+  RateTable,
+  ServiceField,
+  VatField,
+  RouteField,
+  ShipmentField,
 } from './definitions';
 import { formatCurrency } from './utils';
 
@@ -206,6 +211,41 @@ export async function fetchCurrencies() {
   }
 }
 
+export async function fetchServices() {
+  try {
+    const data = await sql<ServiceField>`
+      SELECT
+        id,
+        name_eng
+      FROM services
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch services.');
+  }
+}
+
+export async function fetchVatRates() {
+  try {
+    const data = await sql<VatField>`
+      SELECT
+        id,
+        name_eng,
+        rate
+      FROM vat_rates
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch vat rates.');
+  }
+}
+
 export async function fetchOrganisations() {
   try {
     const data = await sql<OrganisationField>`
@@ -307,4 +347,97 @@ export async function fetchAgreementsByCusomerNameAndOrganisationName(
   }
 }
 
+export async function fetchInvoiceRates() {
+  try {
+    const data = await sql<RateTable>`
+    SELECT r.id, s.id as shipment_id, s.number as shipment_number,
+    ro.id as route_id, c1.name_eng as start_point_name,
+    c2.name_eng as end_point_name, se.id as service_id, 
+    se.name_eng as service_name, r.rate / 100 as rate,
+    cu.id as currency_id, cu.short_name as currency_name,
+    vr.id as vat_rate_id, vr.rate as vat_rate_rate,
+    vr.name_eng as vat_rate_name, r.quantity
+    FROM rates as r
+    LEFT JOIN shipments as s
+    ON r.shipment_id = s.id
+    LEFT JOIN routes as ro
+    ON r.route_id = ro.id
+    LEFT JOIN cities as c1
+    ON ro.start_city_id = c1.id
+    LEFT JOIN cities as c2
+    ON ro.end_city_id = c2.id
+    LEFT JOIN services as se
+    ON r.service_id = se.id
+    LEFT JOIN currencies as cu
+    ON r.currency_id = cu.id
+    LEFT JOIN vat_rates as vr
+    ON r.vat_rate_id = vr.id
+    LEFT JOIN invoice_rates as ir
+    ON r.id = ir.rate_id
+    `;
 
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch rates for the invoice.');
+  }
+}
+
+export async function fetchInvoiceNumber() {
+  try {
+    const oldInvoice = await sql`
+    select max(number)
+    from invoices
+    `;
+
+    let oldNumber: string = oldInvoice.rows[0].max;
+
+    if(oldNumber.trim() === '') { oldNumber = 'GH_000001'}
+
+    const newNumber = Number(oldNumber.slice(3,9)) + 1;
+    
+    const newNumberString = '00000' + String(newNumber);
+    const length = newNumberString.length;
+
+    const newStyledNumber = 'GH_' + newNumberString.slice(length-6,length)
+
+    return newStyledNumber;
+  } catch(error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch the latest invoice number.');
+  }
+}
+
+export async function fetchRoutes() {
+  try {
+    const data = await sql<RouteField>`
+    SELECT r.id, c1.name_eng || ' - ' || c2.name_eng as start_end
+    FROM routes as r
+    LEFT JOIN cities as c1
+    ON r.start_city_id = c1.id
+    LEFT JOIN cities as c2
+    ON r.end_city_id = c2.id
+    ORDER BY start_end ASC
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch routes.');
+  }
+}
+
+export async function fetchShipments() {
+  try {
+    const data = await sql<ShipmentField>`
+    SELECT id, number || ' dd. ' || date as number_date
+    FROM shipments
+    ORDER BY number_date DESC
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.log('Database error', error);
+    throw new Error('Failed to fetch shipments');
+  }
+}

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { InvoiceFormSchema } from './schemas/schema';
+import { InvoiceFormSchema, InvoiceRateFormSchema } from './schemas/schema';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -34,6 +34,7 @@ export type State = {
   };
 
 type InvoiceType = z.infer<typeof InvoiceFormSchema>;
+type RateType = z.infer<typeof InvoiceRateFormSchema>;
 
 export async function createInvoice(formData: InvoiceType) {
 
@@ -131,6 +132,58 @@ export async function deleteInvoice(id: string) {
     
     
 }
+
+export async function createInvoiceRate(formData: RateType) {
+    const validatedFields = InvoiceRateFormSchema.safeParse({
+        service_id: formData.service_id,
+        shipment_id: formData.shipment_id,
+        route_id: formData.route_id,
+        rate: formData.rate,
+        quantity: formData.quantity,
+        currency_id: formData.currency_id,
+        vat_rate_id: formData.vat_rate_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { service_id, shipment_id, route_id, rate, quantity, currency_id, vat_rate_id}
+     = validatedFields.data;
+
+    let shipmentId, routeId;
+
+    if(shipment_id === "") { shipmentId = null } else { shipmentId = shipment_id }
+    if(route_id === "") { routeId = null } else { routeId = route_id }
+
+     const rateInCents = rate * 100;
+     const netAmountInCents = Math.trunc(rateInCents * quantity);
+     const vatAmountInCents = Math.trunc(netAmountInCents * 0.2);
+     const grossAmountInCents = netAmountInCents + vatAmountInCents;
+    
+     try {
+        await sql`
+        INSERT INTO rates (service_id, shipment_id, route_id, rate, quantity, net_amount, currency_id, vat_rate_id, vat_amount, gross_amount) VALUES
+        (${service_id}, ${shipmentId}, ${routeId}, ${rateInCents}, ${quantity}, ${netAmountInCents}, ${currency_id}, ${vat_rate_id}, ${vatAmountInCents}, ${grossAmountInCents})
+        `;
+
+     } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Create Rate'
+        };
+     }
+
+     revalidatePath('/dashboard/invoices/create');
+     redirect('/dashboard/invoices/create');
+}
+
+export async function updateInvoiceRate(id: string, formData: FormData) {}
+
+export async function deleteInvoiceRate(id: string) {}
 
 export async function authenticate(
     prevState: string | undefined,

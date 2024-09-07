@@ -1,12 +1,14 @@
 import Form from '@/app/ui/invoices/create-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
-import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations } from '@/app/lib/data';
+import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceRates, fetchInvoiceNumber } from '@/app/lib/data';
  
 export default async function Page() {
   const customers = await fetchCustomers();
   const currencies = await fetchCurrencies();
   const agreements = await fetchAgreementsByCusomerIdAndOrganisationId('', '');
   const organisations = await fetchOrganisations();
+  const rates = await fetchInvoiceRates();
+  const invoice_number = await fetchInvoiceNumber();
  
   return (
     <main>
@@ -20,7 +22,7 @@ export default async function Page() {
           },
         ]}
       />
-      <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations}/>
+      <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations} rates={rates} invoice_number={invoice_number}/>
     </main>
   );
 }

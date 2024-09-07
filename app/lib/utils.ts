@@ -7,6 +7,19 @@ export const formatCurrency = (amount: number) => {
   });
 };
 
+export const formatAmount = (amount: number) => {
+  return (amount / 100).toLocaleString('en-US', {
+    style: 'currency',
+  });
+}
+
+export const formatAmountCurrency = (amount: number, currency: string) => {
+  return (amount / 100).toLocaleString('en-US', {
+    style: 'currency',
+    currency: currency,
+  });
+};
+
 export const formatDateToLocal = (
   dateStr: string,
   locale: string = 'en-US',

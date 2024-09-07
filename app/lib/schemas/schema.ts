@@ -34,7 +34,23 @@ export const InvoiceFormSchema = z.object({
     amount_managerial_with_vat: z.coerce.number().
         gt(0, { message: 'Amount should be greater than 0.'}),
     */
-    number: z.string().min(1, {
-        message: 'Please enter invoice number'
-    }),
+    number: z.string(),
+    });
+
+  export const InvoiceRateFormSchema = z.object({
+    shipment_id: z.string(),
+    service_id: z.string()
+        .min(1, { message: 'Please choose a service' }),
+    rate: z.coerce
+        .number({ message: 'Please enter number' })
+        .positive({ message: 'Please enter positive number'}),
+    currency_id: z.string()
+        .min(1, { message: 'Please choose a currency' }),
+    vat_rate_id: z.string()
+        .min(1, { message: 'Please choose a vat rate' }),
+    route_id: z.string(),
+    quantity: z.coerce
+        .number({ message: 'Please enter number' })
+        .positive({ message: 'Please enter positive value' }),
+    invoice_number: z.string(),
   });

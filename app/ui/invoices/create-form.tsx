@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField } from '@/app/lib/definitions';
+import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable } from '@/app/lib/definitions';
 import Link from 'next/link';
 import {
   CheckIcon,
@@ -15,13 +15,17 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { createInvoice, State } from '@/app/lib/actions';
-import { FormEvent, useActionState, useEffect, useState, useTransition } from 'react';
+import { FormEvent, Suspense, useActionState, useEffect, useState, useTransition } from 'react';
 import { useForm } from "react-hook-form"
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { RawCreateParams, z } from 'zod';
 import { InvoiceFormSchema } from '@/app/lib/schemas/schema';
 import { I18nProvider } from '@react-aria/i18n';
 import React from 'react';
+import { CreateRate } from '../rates/buttons';
+import RatesTable from '@/app/ui/rates/rates-table'
+import { InvoiceRatesTableSkeleton, InvoicesTableSkeleton } from '../skeletons';
+import { fetchInvoiceRates } from '@/app/lib/data';
 
 type InvoiceType = z.infer<typeof InvoiceFormSchema>;
 
@@ -30,15 +34,18 @@ export default function Form({
   currencies,
   agreements,
   organisations,
+  rates,
+  invoice_number
 }: { 
   customers: CustomerField[],
   currencies: CurrencyField[],
   agreements: CustomerAgreementField[],
   organisations: OrganisationField[],
+  rates: RateTable[],
+  invoice_number: string,
 }) {
-
+  
   const [data, setData] = useState<InvoiceType>();
-  // const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
 
   const {
     register,
@@ -51,6 +58,7 @@ export default function Form({
   });
 
   
+  
   const onSubmit = async (data: InvoiceType) => {
     try{
       await createInvoice(data);
@@ -58,7 +66,6 @@ export default function Form({
       console.log(e);
     }
   }
-
   return (
     <form onSubmit={(e) => {
       handleSubmit(
@@ -77,12 +84,11 @@ export default function Form({
           <div className="relative">
             <input
                   id="number"
-                  type="text"
                   step="0.01"
-                  placeholder='Please enter invoice number'
                   {...register('number')}
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="number-error"
+                  defaultValue={invoice_number}
                 />
             <ClipboardDocumentCheckIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
@@ -204,61 +210,100 @@ export default function Form({
           </div>
         </div>
 
-        {/* Invoice Status */}
-        <fieldset>
-          <legend className="mb-2 block text-sm font-medium">
-            Set the invoice status
-          </legend>
-          <div className="rounded-md border border-gray-200 bg-white px-[14px] py-3">
-            <div className="flex gap-4">
-              <div className="flex items-center">
-                <input
-                  id="pending"
-                  { ...register('status')}
-                  type="radio"
-                  value="pending"
-                  className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
-                  aria-describedby="status-error"
-                />
-                <label
-                  htmlFor="pending"
-                  className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600"
-                >
-                  Pending <ClockIcon className="h-4 w-4" />
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  id="paid"
-                  name="status"
-                  type="radio"
-                  value="paid"
-                  className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
-                />
-                <label
-                  htmlFor="paid"
-                  className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-xs font-medium text-white"
-                >
-                  Paid <CheckIcon className="h-4 w-4" />
-                </label>
-              </div>
-            </div>
-
+        {/* Organisation */}
+        <div className="mb-4">
+          <label htmlFor="organisation" className="mb-2 block text-sm font-medium">
+            Choose organisation
+          </label>
+          <div className="relative">
+            <select
+              id="organisation"
+              {...register('organisation_id')}
+              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
+              defaultValue=""
+              aria-describedby="organisation-error"
+            >
+              <option value="" disabled>
+                Select an organisation
+              </option>
+              {organisations.map((organisation) => (
+                <option 
+                  key={organisation.id} 
+                  value={organisation.id} >
+                    {organisation.name_eng}
+                </option>
+              ))}
+            </select>
+            <HomeIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
-          <div id="status-error" aria-live="polite" aria-atomic="true">
-            {
-              errors.status?.message &&
+          <div id="organisation-error" aria-live="polite" aria-atomic="true">
+            { 
+              errors.organisation_id?.message && 
               (
-                <p className="mt-2 text-sm text-red-500" key={errors.status.message}>
-                  {errors.status.message}
-                </p>
-              )
-            }
+                  <p className="mt-2 text-sm text-red-500" key={errors.organisation_id.message}>
+                    {errors.organisation_id.message}
+                  </p>
+                )                      
+              }
           </div>
-        </fieldset>
+        </div>
+
+        {/* Currency */}
+        <div className="mb-4">
+          <label htmlFor="customer" className="mb-2 block text-sm font-medium">
+            Choose currency
+          </label>
+          <div className="relative">
+            <select
+              id="customer"
+              {...register('currency_id')}
+              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
+              defaultValue=""
+              aria-describedby="currency-error"
+            >
+              <option value="" disabled>
+                Select a currency
+              </option>
+              {currencies.map((currency) => (
+                <option 
+                  key={currency.id} 
+                  value={currency.id} >
+                    {currency.short_name}
+                </option>
+              ))}
+            </select>
+            <CurrencyEuroIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+          </div>
+          <div id="currency-error" aria-live="polite" aria-atomic="true">
+            { 
+              errors.currency_id?.message && 
+              (
+                  <p className="mt-2 text-sm text-red-500" key={errors.currency_id.message}>
+                    {errors.currency_id.message}
+                  </p>
+                )                      
+              }
+          </div>
+        </div>
+
+      </div>
+
+      {/* Rate Table */}
+      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+        <CreateRate invoice_number={invoice_number}/>
+      </div>
+
+      <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
+          <RatesTable rates={rates}/>
+      </Suspense>
+
+
+      <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grip-">
+
+
 
         {/* Amount w/o VAT */}
-        <div className="mb-4">
+        <div className="mb-4 col-start-2">
           <label htmlFor="amount_wo_vat" className="mb-2 block text-sm font-medium">
             Amount without VAT
           </label>
@@ -359,83 +404,10 @@ export default function Form({
           </div>
         </div>
 
-        {/* Currency */}
-        <div className="mb-4">
-          <label htmlFor="customer" className="mb-2 block text-sm font-medium">
-            Choose currency
-          </label>
-          <div className="relative">
-            <select
-              id="customer"
-              {...register('currency_id')}
-              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-              defaultValue=""
-              aria-describedby="currency-error"
-            >
-              <option value="" disabled>
-                Select a currency
-              </option>
-              {currencies.map((currency) => (
-                <option 
-                  key={currency.id} 
-                  value={currency.id} >
-                    {currency.short_name}
-                </option>
-              ))}
-            </select>
-            <CurrencyEuroIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
-          </div>
-          <div id="currency-error" aria-live="polite" aria-atomic="true">
-            { 
-              errors.currency_id?.message && 
-              (
-                  <p className="mt-2 text-sm text-red-500" key={errors.currency_id.message}>
-                    {errors.currency_id.message}
-                  </p>
-                )                      
-              }
-          </div>
-        </div>
-
-        {/* Organisation */}
-        <div className="mb-4">
-          <label htmlFor="organisation" className="mb-2 block text-sm font-medium">
-            Choose organisation
-          </label>
-          <div className="relative">
-            <select
-              id="organisation"
-              {...register('organisation_id')}
-              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-              defaultValue=""
-              aria-describedby="organisation-error"
-            >
-              <option value="" disabled>
-                Select an organisation
-              </option>
-              {organisations.map((organisation) => (
-                <option 
-                  key={organisation.id} 
-                  value={organisation.id} >
-                    {organisation.name_eng}
-                </option>
-              ))}
-            </select>
-            <HomeIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
-          </div>
-          <div id="organisation-error" aria-live="polite" aria-atomic="true">
-            { 
-              errors.organisation_id?.message && 
-              (
-                  <p className="mt-2 text-sm text-red-500" key={errors.organisation_id.message}>
-                    {errors.organisation_id.message}
-                  </p>
-                )                      
-              }
-          </div>
-        </div>
-
       </div>
+      
+
+
       <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
         {/* Remarks */}
         <div className="mb-4">
@@ -453,7 +425,61 @@ export default function Form({
             <DocumentTextIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
         </div>
+
+        {/* Invoice Status */}
+        <fieldset>
+          <legend className="mb-2 block text-sm font-medium">
+            Set the invoice status
+          </legend>
+          <div className="rounded-md border border-gray-200 bg-white px-[14px] py-3">
+            <div className="flex gap-4">
+              <div className="flex items-center">
+                <input
+                  id="pending"
+                  { ...register('status')}
+                  type="radio"
+                  value="pending"
+                  className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
+                  aria-describedby="status-error"
+                />
+                <label
+                  htmlFor="pending"
+                  className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600"
+                >
+                  Pending <ClockIcon className="h-4 w-4" />
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="paid"
+                  name="status"
+                  type="radio"
+                  value="paid"
+                  className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
+                />
+                <label
+                  htmlFor="paid"
+                  className="ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-green-500 px-3 py-1.5 text-xs font-medium text-white"
+                >
+                  Paid <CheckIcon className="h-4 w-4" />
+                </label>
+              </div>
+            </div>
+
+          </div>
+          <div id="status-error" aria-live="polite" aria-atomic="true">
+            {
+              errors.status?.message &&
+              (
+                <p className="mt-2 text-sm text-red-500" key={errors.status.message}>
+                  {errors.status.message}
+                </p>
+              )
+            }
+          </div>
+        </fieldset>
       </div>
+      
       <div className="mt-6 flex justify-end gap-4">
         <Link
           href="/dashboard/invoices"
