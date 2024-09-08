@@ -15,6 +15,7 @@ import {
   VatField,
   RouteField,
   ShipmentField,
+  InvoiceTypeFull,
 } from './definitions';
 import { formatCurrency } from './utils';
 
@@ -246,6 +247,21 @@ export async function fetchVatRates() {
   }
 }
 
+export async function fetchVatRateById(id: string) {
+  try {
+    const data = sql<VatField>`
+    SELECT id, name_eng, rate
+    FROM vat_rates
+    WHERE id = ${id}
+    `;
+
+    return (await data).rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch vat rate by id');
+  }
+}
+
 export async function fetchOrganisations() {
   try {
     const data = await sql<OrganisationField>`
@@ -347,13 +363,13 @@ export async function fetchAgreementsByCusomerNameAndOrganisationName(
   }
 }
 
-export async function fetchInvoiceRates() {
+export async function fetchInvoiceRatesByInvoiceNumber(invoice_number: string) {
   try {
     const data = await sql<RateTable>`
     SELECT r.id, s.id as shipment_id, s.number as shipment_number,
     ro.id as route_id, c1.name_eng as start_point_name,
     c2.name_eng as end_point_name, se.id as service_id, 
-    se.name_eng as service_name, r.rate / 100 as rate,
+    se.name_eng as service_name, r.rate as rate,
     cu.id as currency_id, cu.short_name as currency_name,
     vr.id as vat_rate_id, vr.rate as vat_rate_rate,
     vr.name_eng as vat_rate_name, r.quantity
@@ -374,6 +390,7 @@ export async function fetchInvoiceRates() {
     ON r.vat_rate_id = vr.id
     LEFT JOIN invoice_rates as ir
     ON r.id = ir.rate_id
+    WHERE r.invoice_number = ${invoice_number}
     `;
 
     return data.rows;
@@ -388,6 +405,7 @@ export async function fetchInvoiceNumber() {
     const oldInvoice = await sql`
     select max(number)
     from invoices
+    where customer_id NOTNULL
     `;
 
     let oldNumber: string = oldInvoice.rows[0].max;
@@ -441,3 +459,54 @@ export async function fetchShipments() {
     throw new Error('Failed to fetch shipments');
   }
 }
+
+export async function fetchInvoiceByNumber(number: string) {
+  try {
+    const data = await sql<InvoiceTypeFull>`
+    SELECT * FROM invoices
+    WHERE number = ${number}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch invoice by number');
+  }
+}
+
+export async function createInvoiceDraft() {
+  try {
+
+    const invoiceNumber = await fetchInvoiceNumber();
+    const invoice = await fetchInvoiceByNumber(invoiceNumber);
+
+    if(invoice == null) {
+      await sql`
+      INSERT INTO invoices (number) VALUES
+      (${invoiceNumber})
+      `;
+    }
+    return invoiceNumber;
+  } catch(error) {
+      console.log('Database error: ', error);
+      throw new Error('Failed to create invoice draft');
+  }
+}
+
+export async function fetchInvoiceDraft() {
+  try {
+    const invoiceNumber = await createInvoiceDraft();
+
+    const data = await sql<InvoiceTypeFull>`
+    SELECT * 
+    FROM invoices
+    WHERE number = ${`${invoiceNumber}`}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error', error);
+    throw new Error('Failed to fetch invoice draft');
+  }
+}
+

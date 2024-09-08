@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable } from '@/app/lib/definitions';
+import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable, InvoiceTypeFull } from '@/app/lib/definitions';
 import Link from 'next/link';
 import {
   CheckIcon,
@@ -25,7 +25,8 @@ import React from 'react';
 import { CreateRate } from '../rates/buttons';
 import RatesTable from '@/app/ui/rates/rates-table'
 import { InvoiceRatesTableSkeleton, InvoicesTableSkeleton } from '../skeletons';
-import { fetchInvoiceRates } from '@/app/lib/data';
+import { fetchAgreementsByCusomerIdAndOrganisationId } from '@/app/lib/data';
+
 
 type InvoiceType = z.infer<typeof InvoiceFormSchema>;
 
@@ -35,14 +36,14 @@ export default function Form({
   agreements,
   organisations,
   rates,
-  invoice_number
+  invoice
 }: { 
   customers: CustomerField[],
   currencies: CurrencyField[],
   agreements: CustomerAgreementField[],
   organisations: OrganisationField[],
   rates: RateTable[],
-  invoice_number: string,
+  invoice: InvoiceTypeFull,
 }) {
   
   const [data, setData] = useState<InvoiceType>();
@@ -57,8 +58,21 @@ export default function Form({
       resolver: zodResolver(InvoiceFormSchema)
   });
 
-  
-  
+  const customer_id = watch('customerId');
+  const organisation_id = watch('organisation_id');
+
+  let filteredAgreements : CustomerAgreementField[] = agreements;
+   
+  /* Don't forget to delete */
+  React.useEffect(() => {
+
+    const subscription = watch((value, { name, type }) =>
+      console.log(value, name, type)
+    )
+    return () => subscription.unsubscribe()
+  }, [watch]);
+  /* till here */
+
   const onSubmit = async (data: InvoiceType) => {
     try{
       await createInvoice(data);
@@ -88,7 +102,7 @@ export default function Form({
                   {...register('number')}
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="number-error"
-                  defaultValue={invoice_number}
+                  defaultValue={invoice.number}
                 />
             <ClipboardDocumentCheckIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
@@ -116,6 +130,7 @@ export default function Form({
                   type="date"
                   placeholder='dd-mm-yyyy'
                   {...register('date')}
+                  defaultValue={new Date().toISOString().split('T')[0]}
                   aria-describedby="date-error"
                   className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
                 />
@@ -128,6 +143,44 @@ export default function Form({
               (
                   <p className="mt-2 text-sm text-red-500" key={errors.date.message}>
                     {errors.date.message}
+                  </p>
+                )                      
+              }
+          </div>
+        </div>
+
+        {/* Organisation */}
+        <div className="mb-4">
+          <label htmlFor="organisation" className="mb-2 block text-sm font-medium">
+            Organisation
+          </label>
+          <div className="relative">
+            <select
+              id="organisation"
+              {...register('organisation_id')}
+              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
+              defaultValue=""
+              aria-describedby="organisation-error"
+            >
+              <option value="" disabled>
+                Select an organisation
+              </option>
+              {organisations.map((organisation) => (
+                <option 
+                  key={organisation.id} 
+                  value={organisation.id} >
+                    {organisation.name_eng}
+                </option>
+              ))}
+            </select>
+            <HomeIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+          </div>
+          <div id="organisation-error" aria-live="polite" aria-atomic="true">
+            { 
+              errors.organisation_id?.message && 
+              (
+                  <p className="mt-2 text-sm text-red-500" key={errors.organisation_id.message}>
+                    {errors.organisation_id.message}
                   </p>
                 )                      
               }
@@ -188,7 +241,7 @@ export default function Form({
               <option value="" disabled>
                 Select an agreement
               </option>
-              {agreements.map((agreement) => (
+              {filteredAgreements.map((agreement) => (
                 <option 
                   key={agreement.id} 
                   value={agreement.id} >
@@ -210,52 +263,15 @@ export default function Form({
           </div>
         </div>
 
-        {/* Organisation */}
-        <div className="mb-4">
-          <label htmlFor="organisation" className="mb-2 block text-sm font-medium">
-            Choose organisation
-          </label>
-          <div className="relative">
-            <select
-              id="organisation"
-              {...register('organisation_id')}
-              className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-              defaultValue=""
-              aria-describedby="organisation-error"
-            >
-              <option value="" disabled>
-                Select an organisation
-              </option>
-              {organisations.map((organisation) => (
-                <option 
-                  key={organisation.id} 
-                  value={organisation.id} >
-                    {organisation.name_eng}
-                </option>
-              ))}
-            </select>
-            <HomeIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
-          </div>
-          <div id="organisation-error" aria-live="polite" aria-atomic="true">
-            { 
-              errors.organisation_id?.message && 
-              (
-                  <p className="mt-2 text-sm text-red-500" key={errors.organisation_id.message}>
-                    {errors.organisation_id.message}
-                  </p>
-                )                      
-              }
-          </div>
-        </div>
 
         {/* Currency */}
         <div className="mb-4">
-          <label htmlFor="customer" className="mb-2 block text-sm font-medium">
+          <label htmlFor="currency" className="mb-2 block text-sm font-medium">
             Choose currency
           </label>
           <div className="relative">
             <select
-              id="customer"
+              id="currency"
               {...register('currency_id')}
               className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
               defaultValue=""
@@ -286,17 +302,37 @@ export default function Form({
           </div>
         </div>
 
+        {/* Currency rate */}
+        <div className="mb-4">
+          <label htmlFor="currency_rate" className="mb-2 block text-sm font-medium">
+            Currency rate
+          </label>
+          <div className="relative">
+            <input 
+              id="currency_rate"
+              type="number"
+              {
+                ...register('currency_rate')
+              }
+              step="0.01"
+              className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
+              aria-describedby="currency-rate-error"
+            />
+            <CurrencyEuroIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+          </div>
+          <div id="currency-rate-error" aria-live="polite" aria-atomic="true">
+            { 
+              errors.currency_rate?.message && 
+              (
+                  <p className="mt-2 text-sm text-red-500" key={errors.currency_rate.message}>
+                    {errors.currency_rate.message}
+                  </p>
+                )                      
+              }
+          </div>
+        </div>
+
       </div>
-
-      {/* Rate Table */}
-      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
-        <CreateRate invoice_number={invoice_number}/>
-      </div>
-
-      <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
-          <RatesTable rates={rates}/>
-      </Suspense>
-
 
       <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grip-">
 
@@ -305,7 +341,7 @@ export default function Form({
         {/* Amount w/o VAT */}
         <div className="mb-4 col-start-2">
           <label htmlFor="amount_wo_vat" className="mb-2 block text-sm font-medium">
-            Amount without VAT
+            Amount w/o VAT
           </label>
           <div className="relative mt-2 rounded-md">
             <div className="relative">

@@ -28,13 +28,16 @@ export default function Form({
     vat_rates,
     routes,
     shipments,
+    invoice_number,
 } : {
     services: ServiceField[],
     currencies: CurrencyField[],
     vat_rates: VatField[],
     routes: RouteField[],
     shipments: ShipmentField[],
+    invoice_number: string,
 }) {
+    const createRateWithInvoiceNumber = createInvoiceRate.bind(null, invoice_number);
 
     const [data, setData] = useState<RateType>();
     const {
@@ -46,9 +49,18 @@ export default function Form({
         resolver: zodResolver(InvoiceRateFormSchema)
     });
 
+    /* Don't forget to delete */
+    React.useEffect(() => {
+        const subscription = watch((value, { name, type }) =>
+          console.log(value, name, type)
+        )
+        return () => subscription.unsubscribe()
+      }, [watch]);
+    /* till here */
+
     const onSubmit = async (data:RateType) => {
         try {
-            await createInvoiceRate(data);
+            await createRateWithInvoiceNumber(data);
         } catch(e) {
             console.log(e);
         }
@@ -261,7 +273,7 @@ export default function Form({
                 {/* Rate Currency */}
                 <div className="mb-4">
                     <label htmlFor="customer" className="mb-2 block text-sm font-medium">
-                        Choose Rate currency
+                        Rate currency
                     </label>
                     <div className="relative">
                         <select

@@ -7,6 +7,9 @@ export const InvoiceFormSchema = z.object({
     amount: z.coerce
         .number()
         .gt(0, { message: 'Please enter an amount greater than 0.' }),
+    currency_rate: z.coerce
+        .number()
+        .gt(0, { message: 'Please enter rate greater then 0.'}),
     status: z.enum(['pending', 'paid'], {
         message: 'Please select an invoice status.',
       }),
@@ -37,7 +40,9 @@ export const InvoiceFormSchema = z.object({
     number: z.string(),
     });
 
-  export const InvoiceRateFormSchema = z.object({
+export type InvoiceType = z.infer<typeof InvoiceFormSchema>;
+
+export const InvoiceRateFormSchema = z.object({
     shipment_id: z.string(),
     service_id: z.string()
         .min(1, { message: 'Please choose a service' }),
@@ -52,5 +57,6 @@ export const InvoiceFormSchema = z.object({
     quantity: z.coerce
         .number({ message: 'Please enter number' })
         .positive({ message: 'Please enter positive value' }),
-    invoice_number: z.string(),
-  });
+});
+
+export type RateType = z.infer<typeof InvoiceRateFormSchema>;

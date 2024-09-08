@@ -1,14 +1,21 @@
 import Form from '@/app/ui/invoices/create-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
-import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceRates, fetchInvoiceNumber } from '@/app/lib/data';
- 
+import { Suspense } from 'react';
+import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
+import RatesTable from '@/app/ui/rates/rates-table';
+import { CreateRate } from '@/app/ui/rates/buttons';
+import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceRates, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber } from '@/app/lib/data';
+
 export default async function Page() {
-  const customers = await fetchCustomers();
-  const currencies = await fetchCurrencies();
-  const agreements = await fetchAgreementsByCusomerIdAndOrganisationId('', '');
-  const organisations = await fetchOrganisations();
-  const rates = await fetchInvoiceRates();
-  const invoice_number = await fetchInvoiceNumber();
+  const [customers, currencies, agreements, organisations, invoice] = await Promise.all([
+    fetchCustomers(),
+    fetchCurrencies(),
+    fetchAgreementsByCusomerIdAndOrganisationId('', ''),
+    fetchOrganisations(),
+    fetchInvoiceDraft(),
+  ])
+
+  const rates = await fetchInvoiceRatesByInvoiceNumber(invoice.number);
  
   return (
     <main>
@@ -22,7 +29,18 @@ export default async function Page() {
           },
         ]}
       />
-      <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations} rates={rates} invoice_number={invoice_number}/>
+
+      {/* Rate Table */}
+      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+        <CreateRate invoice_number={invoice.number}/>
+      </div>
+      <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
+          <RatesTable rates={rates}/>
+      </Suspense>
+
+      <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations} rates={rates} invoice={invoice}/>
+
+
     </main>
   );
 }

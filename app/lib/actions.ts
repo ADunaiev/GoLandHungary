@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { InvoiceFormSchema, InvoiceRateFormSchema } from './schemas/schema';
+import { fetchVatRateById } from './data';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -133,7 +134,7 @@ export async function deleteInvoice(id: string) {
     
 }
 
-export async function createInvoiceRate(formData: RateType) {
+export async function createInvoiceRate(invoice_number: string, formData: RateType) {
     const validatedFields = InvoiceRateFormSchema.safeParse({
         service_id: formData.service_id,
         shipment_id: formData.shipment_id,
@@ -160,14 +161,15 @@ export async function createInvoiceRate(formData: RateType) {
     if(route_id === "") { routeId = null } else { routeId = route_id }
 
      const rateInCents = rate * 100;
+     const vat_rate = await fetchVatRateById(vat_rate_id);
      const netAmountInCents = Math.trunc(rateInCents * quantity);
-     const vatAmountInCents = Math.trunc(netAmountInCents * 0.2);
+     const vatAmountInCents = Math.trunc(netAmountInCents * vat_rate.rate / 10000);
      const grossAmountInCents = netAmountInCents + vatAmountInCents;
     
      try {
         await sql`
-        INSERT INTO rates (service_id, shipment_id, route_id, rate, quantity, net_amount, currency_id, vat_rate_id, vat_amount, gross_amount) VALUES
-        (${service_id}, ${shipmentId}, ${routeId}, ${rateInCents}, ${quantity}, ${netAmountInCents}, ${currency_id}, ${vat_rate_id}, ${vatAmountInCents}, ${grossAmountInCents})
+        INSERT INTO rates (service_id, shipment_id, route_id, rate, quantity, net_amount, currency_id, vat_rate_id, vat_amount, gross_amount, invoice_number) VALUES
+        (${service_id}, ${shipmentId}, ${routeId}, ${rateInCents}, ${quantity}, ${netAmountInCents}, ${currency_id}, ${vat_rate_id}, ${vatAmountInCents}, ${grossAmountInCents}, ${invoice_number})
         `;
 
      } catch (error) {

@@ -28,7 +28,11 @@ export default async function RatesTable({ rates } : {
                     <div className="flex w-full items-center justify-between pt-4">
                       <div>
                         <p className="text-xl font-medium">
-                          {rate.rate + ' * ' + rate.quantity + ' = ' + rate.rate * rate.quantity}
+                          {(rate.rate / 100).toLocaleString('en-GB', {
+                            maximumFractionDigits:2,
+                            minimumFractionDigits: 2
+                          }) + ' * ' + rate.quantity + ' = ' + (rate.rate * rate.quantity / 100)
+                            .toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                         <p>{'Vat: ' + rate.vat_rate_name}</p>
                       </div>
@@ -78,7 +82,7 @@ export default async function RatesTable({ rates } : {
                         {rate.start_point_name + "-" + rate.end_point_name}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
-                        {rate.rate + ' ' + rate.currency_name}
+                        {(rate.rate / 100).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits: 2}) + ' ' + rate.currency_name}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
                         {rate.quantity}

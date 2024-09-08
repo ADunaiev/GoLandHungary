@@ -55,6 +55,23 @@ export type InvoicesTable = {
   status: 'pending' | 'paid';
 };
 
+export type InvoiceTypeFull = {
+  id: string;
+  customer_id: string;
+  amount: number;
+  status: 'pending' | 'paid';
+  date: string;
+  remarks: string;
+  amount_wo_vat: number;
+  currency_id: string;
+  agreement_id: string;
+  vat_amount: number;
+  amount_managerial_wo_vat: number;
+  amount_managerial_with_vat: number;
+  number: string;
+  organisation_id: string;
+}
+
 export type CustomersTableType = {
   id: string;
   name: string;
