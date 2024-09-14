@@ -4,15 +4,16 @@ import { Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import RatesTable from '@/app/ui/rates/rates-table';
 import { CreateRate } from '@/app/ui/rates/buttons';
-import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceRates, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber } from '@/app/lib/data';
+import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber, fetchCurrenciesRates } from '@/app/lib/data';
 
 export default async function Page() {
-  const [customers, currencies, agreements, organisations, invoice] = await Promise.all([
+  const [customers, currencies, agreements, organisations, invoice, currencies_rates] = await Promise.all([
     fetchCustomers(),
     fetchCurrencies(),
     fetchAgreementsByCusomerIdAndOrganisationId('', ''),
     fetchOrganisations(),
     fetchInvoiceDraft(),
+    fetchCurrenciesRates(),
   ])
 
   const rates = await fetchInvoiceRatesByInvoiceNumber(invoice.number);
@@ -38,8 +39,7 @@ export default async function Page() {
           <RatesTable rates={rates}/>
       </Suspense>
 
-      <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations} rates={rates} invoice={invoice}/>
-
+      <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations} rates={rates} invoice={invoice} currencies_rates={currencies_rates}/>
 
     </main>
   );

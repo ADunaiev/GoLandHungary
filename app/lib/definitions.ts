@@ -167,6 +167,14 @@ export type RouteField = {
   start_end: string;
 }
 
+export type CurrencyRateField = {
+  id: string,
+  organisation_id: string,
+  currency_id: string,
+  rate: number,
+  date: string,
+}
+
 export type RateTable = {
   id: string;
   shipment_id: string;
@@ -179,11 +187,22 @@ export type RateTable = {
   rate: number;
   currency_id: string;
   currency_name: string;
+  currency_rate: number;
   vat_rate_id: string;
   vat_rate_rate: number;
   vat_rate_name: string;
   quantity: number;
 };
+
+export type InvoiceRateDbData = {
+  invoice_id: string,
+  rate_id: string,
+  currency_rate: number,
+  net_unit: number,
+  net_line: number,
+  vat_value: number,
+  gross_value: number
+}
 
 
 

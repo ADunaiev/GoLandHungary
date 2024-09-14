@@ -16,8 +16,13 @@ import {
   RouteField,
   ShipmentField,
   InvoiceTypeFull,
+  CurrencyRateField,
+  Rate,
+  InvoiceRateDbData,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { RateType } from './schemas/schema';
+import { getRandomValues } from 'crypto';
 
 export async function fetchRevenue() {
   try {
@@ -93,7 +98,7 @@ export async function fetchCardData() {
   }
 }
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 10;
 
 export async function fetchFilteredInvoices(
   query: string,
@@ -173,6 +178,34 @@ export async function fetchInvoiceById(id: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoice.');
+  }
+}
+
+export async function fetchRateById(id: string) {
+  try {
+    const data = await sql<Rate>`
+    SELECT 
+      id,
+      shipment_id,
+      service_id,
+      rate,
+      currency_id,
+      vat_rate_id,
+      route_id,
+      quantity
+    FROM rates
+    WHERE id = ${id}
+    `;
+
+    const rate = data.rows.map((rate) => ({
+      ...rate,
+      rate: rate.rate / 100
+    }));
+    console.log(rate);
+    return rate[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch rate by id.');
   }
 }
 
@@ -510,3 +543,132 @@ export async function fetchInvoiceDraft() {
   }
 }
 
+export async function fetchCurrenciesRates() {
+  try {
+    const data = await sql<CurrencyRateField>`
+    select c.id, cr.organisation_id, cr.currency_id, cr.rate, cr.date
+    from currency_rates as cr
+    left join currencies as c
+    on cr.currency_id = c.id
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch currencies rates');
+  }
+}
+
+export async function saveInvoiceRatesToDb(
+  invoice_number: string, 
+  date: Date,
+  organisation_id: string,
+  invoice_currency_id: string
+) {
+  try {
+    const invoice = await fetchInvoiceByNumber(invoice_number);
+    const rates = await fetchRatesByInvoiceNumber(invoice_number);
+    const currencies = await fetchCurrenciesRatesByDate(date, organisation_id);
+    const vat_rates = await fetchVatRates();
+    const invoice_currency_rate = currencies.find(c => c.currency_id == invoice_currency_id)?.rate || 1;
+
+    rates.map(async (rate) => {
+      const rate_currency = currencies.find(c => c.currency_id == rate.currency_id)?.rate || 1;
+      const rate_vat_rate = vat_rates.find(vr => vr.id == rate.vat_rate_id)?.rate || 0;
+      const net_unit = Math.round(rate.rate * rate_currency / invoice_currency_rate);
+      const net_line = net_unit * rate.quantity;
+      const vat_value = Math.round(net_line * rate_vat_rate / 10000);
+      const gross_value = net_line + vat_value;
+
+      await sql`
+      INSERT INTO invoice_rates (invoice_id, rate_id, currency_rate, net_unit, net_line, vat_value, gross_value) VALUES
+      (${invoice.id}, ${rate.id}, ${rate_currency}, ${net_unit}, ${net_line}, ${vat_value}, ${gross_value})
+      `;
+
+    });
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to save invoice rates to database.');
+  }
+}
+
+export async function fetchRatesByInvoiceNumber(invoice_number: string) {
+  try {
+    const data = await sql<Rate>`
+    SELECT id, shipment_id, service_id, rate, currency_id, vat_rate_id, route_id, quantity
+    FROM rates
+    WHERE invoice_number = ${invoice_number}
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch rates by invoice number.');
+  }
+}
+
+export async function fetchCurrenciesRatesByDate(date: Date, organisation_id: string) {
+  try {
+    const formatedDate = date.toISOString().split('T')[0];
+
+    const data = await sql<CurrencyRateField>`
+    SELECT id, organisation_id, currency_id, rate, date
+    FROM currency_rates
+    WHERE date = ${formatedDate} AND organisation_id = ${organisation_id} 
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch currencies rates by date.');
+  }
+}
+
+export async function fetchInvoiceRatesByInvoiceId(id: string) {
+  try {
+    const data = await sql<InvoiceRateDbData>`
+    SELECT * 
+    FROM invoice_rates
+    WHERE invoice_id = ${id}
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch invoice rates data.');
+  }
+}
+
+export async function fetchCurrencyRateByDateOrganisationCurrency(date: Date, organisation_id: string, currency_id: string) {
+  try {
+    const formatedDate = date.toISOString().split('T')[0];
+
+    const data = await sql<CurrencyRateField>`
+    SELECT id, organisation_id, currency_id, rate, date
+    FROM currency_rates
+    WHERE date = ${formatedDate} AND organisation_id = ${organisation_id} 
+    AND currency_id = ${currency_id}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch currency rate by date, organisation and currency.');
+  }
+}
+
+export async function fetchManagerialCurrencyIdByOrganisationId(organisation_id: string) {
+  try {
+    const data = await sql`
+    SELECT managerial_currency_id
+    FROM organisations
+    WHERE id = ${organisation_id}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch managerial currency rate.');
+  }
+}

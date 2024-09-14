@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable, InvoiceTypeFull } from '@/app/lib/definitions';
+import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable, InvoiceTypeFull, CurrencyRateField } from '@/app/lib/definitions';
 import Link from 'next/link';
 import {
   CheckIcon,
@@ -22,11 +22,7 @@ import { RawCreateParams, z } from 'zod';
 import { InvoiceFormSchema } from '@/app/lib/schemas/schema';
 import { I18nProvider } from '@react-aria/i18n';
 import React from 'react';
-import { CreateRate } from '../rates/buttons';
-import RatesTable from '@/app/ui/rates/rates-table'
-import { InvoiceRatesTableSkeleton, InvoicesTableSkeleton } from '../skeletons';
-import { fetchAgreementsByCusomerIdAndOrganisationId } from '@/app/lib/data';
-
+import InvoiceTable from '../rates/invoice-table';
 
 type InvoiceType = z.infer<typeof InvoiceFormSchema>;
 
@@ -36,7 +32,8 @@ export default function Form({
   agreements,
   organisations,
   rates,
-  invoice
+  invoice,
+  currencies_rates
 }: { 
   customers: CustomerField[],
   currencies: CurrencyField[],
@@ -44,9 +41,68 @@ export default function Form({
   organisations: OrganisationField[],
   rates: RateTable[],
   invoice: InvoiceTypeFull,
+  currencies_rates: CurrencyRateField[],
 }) {
   
   const [data, setData] = useState<InvoiceType>();
+  const [invoiceTableData, setInvoiceTableData] = useState<RateTable[]>(rates); 
+
+  function getCurrencyRate(cur_date: Date, org_id: string, cur_id: string) {
+     let temp = Number(
+      currencies_rates
+        .filter(cr => Date.parse(cur_date.toLocaleString()) > Date.parse(cr.date))
+        .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+        .find(
+          cr => 
+            cr.currency_id == cur_id && 
+            cr.organisation_id == org_id 
+        )?.rate);
+      
+      if(!temp) { temp = 100; }
+
+      return temp;
+  }
+
+  function getAmountWoVat(
+    rates: RateTable[], 
+    inv_date: Date,
+    org_id: string,
+    inv_currency_id: string
+  ) {
+    let sum = 0;
+
+    rates.map(rate => {
+      sum += (Math.round( rate.rate
+        / getCurrencyRate(inv_date, org_id, inv_currency_id)
+        * getCurrencyRate(inv_date, org_id, rate.currency_id)
+      ) / 100 * rate.quantity);
+    })
+
+    return sum;
+  }
+
+  function getVatAmount(
+    rates: RateTable[], 
+    inv_date: Date,
+    org_id: string,
+    inv_currency_id: string
+  ) {
+    let sum = 0;
+
+    rates.map(rate => {
+      sum += 
+        Math.round(
+          Math.round( rate.rate
+          / getCurrencyRate(inv_date, org_id, inv_currency_id)
+          * getCurrencyRate(inv_date, org_id, rate.currency_id)
+          ) * rate.quantity
+          * rate.vat_rate_rate / 10000
+        ) / 100;
+      
+    })
+
+    return sum;
+  }
 
   const {
     register,
@@ -58,20 +114,20 @@ export default function Form({
       resolver: zodResolver(InvoiceFormSchema)
   });
 
-  const customer_id = watch('customerId');
+  
+
+  const currency_id = watch('currency_id');
   const organisation_id = watch('organisation_id');
+  const invoice_date = watch('date') || '2024-09-10';
 
-  let filteredAgreements : CustomerAgreementField[] = agreements;
-   
-  /* Don't forget to delete */
+  /* Don't forget to delete 
   React.useEffect(() => {
-
     const subscription = watch((value, { name, type }) =>
       console.log(value, name, type)
     )
     return () => subscription.unsubscribe()
   }, [watch]);
-  /* till here */
+  till here */
 
   const onSubmit = async (data: InvoiceType) => {
     try{
@@ -241,7 +297,7 @@ export default function Form({
               <option value="" disabled>
                 Select an agreement
               </option>
-              {filteredAgreements.map((agreement) => (
+              {agreements.map((agreement) => (
                 <option 
                   key={agreement.id} 
                   value={agreement.id} >
@@ -311,8 +367,9 @@ export default function Form({
             <input 
               id="currency_rate"
               type="number"
-              {
-                ...register('currency_rate')
+              disabled
+              value={
+                  getCurrencyRate(invoice_date, organisation_id, currency_id) /100 || 1
               }
               step="0.01"
               className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
@@ -320,23 +377,13 @@ export default function Form({
             />
             <CurrencyEuroIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
-          <div id="currency-rate-error" aria-live="polite" aria-atomic="true">
-            { 
-              errors.currency_rate?.message && 
-              (
-                  <p className="mt-2 text-sm text-red-500" key={errors.currency_rate.message}>
-                    {errors.currency_rate.message}
-                  </p>
-                )                      
-              }
-          </div>
         </div>
 
       </div>
 
+      <InvoiceTable rates={rates} currencies_rates={currencies_rates} invoice_date={invoice_date} organisation_id={organisation_id} invoice_currency_id={currency_id} />
+
       <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grip-">
-
-
 
         {/* Amount w/o VAT */}
         <div className="mb-4 col-start-2">
@@ -347,9 +394,11 @@ export default function Form({
             <div className="relative">
               <input
                 id="amount_wo_vat"
-                type="number"
-                {
-                  ...register('amount_wo_vat')
+                type="text"
+                disabled
+                value={
+                  getAmountWoVat(rates, invoice_date, organisation_id, currency_id)
+                    .toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
                 step="0.01"
                 placeholder="Enter amount"
@@ -358,16 +407,6 @@ export default function Form({
               />
               <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
 
-            </div>
-            <div id="amount-wo-vat-error" aria-live="polite" aria-atomic="true">
-              {
-                errors.amount_wo_vat?.message &&
-                (
-                  <p className="mt-2 text-sm text-red-500" key={errors.amount_wo_vat.message}>
-                    {errors.amount_wo_vat.message}
-                  </p>
-                )
-              }
             </div>
           </div>
         </div>
@@ -381,9 +420,11 @@ export default function Form({
             <div className="relative">
               <input
                 id="vat"
-                type="number"
-                {
-                  ...register('vat_amount')
+                type="text"
+                disabled
+                value={
+                  getVatAmount(rates, invoice_date, organisation_id, currency_id)
+                    .toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
                 step="0.01"
                 placeholder="Enter amount"
@@ -392,16 +433,6 @@ export default function Form({
               />
               <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
 
-            </div>
-            <div id="vat-error" aria-live="polite" aria-atomic="true">
-              {
-                errors.vat_amount?.message &&
-                (
-                  <p className="mt-2 text-sm text-red-500" key={errors.vat_amount.message}>
-                    {errors.vat_amount.message}
-                  </p>
-                )
-              }
             </div>
           </div>
         </div>
@@ -415,9 +446,13 @@ export default function Form({
             <div className="relative">
               <input
                 id="amount"
-                type="number"
-                {
-                  ...register('amount')
+                type="text"
+                disabled
+                value={
+                  (
+                  getAmountWoVat(rates, invoice_date, organisation_id, currency_id) +
+                  getVatAmount(rates, invoice_date, organisation_id, currency_id)
+                  ).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
                 step="0.01"
                 placeholder="Enter amount"
@@ -427,22 +462,10 @@ export default function Form({
               <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
 
             </div>
-            <div id="amount-error" aria-live="polite" aria-atomic="true">
-              {
-                errors.amount?.message &&
-                (
-                  <p className="mt-2 text-sm text-red-500" key={errors.amount.message}>
-                    {errors.amount.message}
-                  </p>
-                )
-              }
-            </div>
           </div>
         </div>
 
       </div>
-      
-
 
       <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
         {/* Remarks */}

@@ -4,12 +4,22 @@ export const InvoiceFormSchema = z.object({
     customerId: z.string().min(1, {
         message: 'Please select a customer.',
     }),
-    amount: z.coerce
-        .number()
-        .gt(0, { message: 'Please enter an amount greater than 0.' }),
-    currency_rate: z.coerce
-        .number()
-        .gt(0, { message: 'Please enter rate greater then 0.'}),
+    /*  amount: z.coerce
+            .number()
+            .gt(0, { message: 'Please enter an amount greater than 0.' }),
+
+        amount_wo_vat: z.coerce
+            .number({message: 'Please enter number'})
+            .nonnegative({message: 'Amount could not be negative'})
+            .min(1, {message: 'Please enter amount'}),
+
+        vat_amount: z.coerce
+            .number({message: 'Please enter number'})
+            .nonnegative("Amount should be not negative"),
+
+        currency_rate: z.coerce
+            .number()
+            .gt(0, { message: 'Please enter rate greater then 0.'}), */
     status: z.enum(['pending', 'paid'], {
         message: 'Please select an invoice status.',
       }),
@@ -17,10 +27,7 @@ export const InvoiceFormSchema = z.object({
         message: 'Please enter invoice date'
     }),
     remarks: z.string(),
-    amount_wo_vat: z.coerce
-        .number({message: 'Please enter number'})
-        .nonnegative({message: 'Amount could not be negative'})
-        .min(1, {message: 'Please enter amount'}),
+
     currency_id: z.string().min(1, {
         message: 'Please select currency'
     }),
@@ -28,9 +35,7 @@ export const InvoiceFormSchema = z.object({
     organisation_id: z.string().min(1, {
         message: 'Please choose organsation'
     }),
-    vat_amount: z.coerce
-        .number({message: 'Please enter number'})
-        .nonnegative("Amount should be not negative"),
+
     /*
     amount_managerial_wo_vat: z.coerce.number().
         gt(0, { message: 'Amount should be greater than 0.'}),
@@ -60,3 +65,4 @@ export const InvoiceRateFormSchema = z.object({
 });
 
 export type RateType = z.infer<typeof InvoiceRateFormSchema>;
+

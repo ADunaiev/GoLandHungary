@@ -1,10 +1,10 @@
 'use client'
 
-import { CurrencyField, RouteField, ServiceField, ShipmentField, VatField } from "@/app/lib/definitions"
+import { CurrencyField, Rate, RouteField, ServiceField, ShipmentField, VatField } from "@/app/lib/definitions"
 import { InvoiceRateFormSchema } from "@/app/lib/schemas/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { createInvoiceRate } from "@/app/lib/actions"
+import { createInvoiceRate, updateInvoiceRate } from "@/app/lib/actions"
 import { 
     CurrencyEuroIcon, 
     TruckIcon, 
@@ -22,22 +22,22 @@ import React from "react"
 
 type RateType = Zod.infer<typeof InvoiceRateFormSchema>
 
-export default function Form({
+export default function EditRateForm({
     services,
     currencies,
     vat_rates,
     routes,
     shipments,
-    invoice_number,
+    rate,
 } : {
     services: ServiceField[],
     currencies: CurrencyField[],
     vat_rates: VatField[],
     routes: RouteField[],
     shipments: ShipmentField[],
-    invoice_number: string,
+    rate: Rate,
 }) {
-    const createRateWithInvoiceNumber = createInvoiceRate.bind(null, invoice_number);
+    const updateRateWithId = updateInvoiceRate.bind(null, rate.id);
 
     const [data, setData] = useState<RateType>();
     const {
@@ -49,18 +49,18 @@ export default function Form({
         resolver: zodResolver(InvoiceRateFormSchema)
     });
 
-    /* Don't forget to delete 
+    /* Don't forget to delete */
     React.useEffect(() => {
         const subscription = watch((value, { name, type }) =>
           console.log(value, name, type)
         )
         return () => subscription.unsubscribe()
       }, [watch]);
-     till here */
+    /* till here */
 
     const onSubmit = async (data:RateType) => {
         try {
-            await createRateWithInvoiceNumber(data);
+            await updateRateWithId(data);
         } catch(e) {
             console.log(e);
         }
@@ -88,7 +88,7 @@ export default function Form({
                             id="service"
                             {...register('service_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={rate.service_id}
                             aria-describedby="service-error"
                             >
                             <option key="service" value="" disabled>
@@ -126,7 +126,7 @@ export default function Form({
                             id="route"
                             {...register('route_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={rate.route_id}
                             >
                             <option key="route" value="" disabled>
                                 Select a route
@@ -153,7 +153,7 @@ export default function Form({
                             id="shipment"
                             {...register('shipment_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={rate.shipment_id}
                             >
                             <option key="shipment" value="" disabled>
                                 Select a shipment
@@ -185,7 +185,7 @@ export default function Form({
                             id="rate_wo_vat"
                             type="number"
                             key="rate_wo_vat"
-                            defaultValue={0}
+                            defaultValue={rate.rate}
                             {
                             ...register('rate')
                             }
@@ -225,7 +225,7 @@ export default function Form({
                             ...register('quantity')
                             }
                             step="1"
-                            defaultValue={1}
+                            defaultValue={rate.quantity}
                             placeholder="Enter quantity"
                             className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                             aria-describedby="quantity-error"
@@ -280,7 +280,7 @@ export default function Form({
                             id="currency"
                             {...register('currency_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={rate.currency_id}
                             aria-describedby="currency-error"
                             >
                             <option key="currency" value="" disabled>
@@ -322,7 +322,7 @@ export default function Form({
                             id="vat"
                             {...register('vat_rate_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={rate.vat_rate_id}
                             aria-describedby="vat-error"
                             >
                             <option key="vat" value="" disabled>
@@ -433,7 +433,7 @@ export default function Form({
                     >
                     Cancel
                 </Link>
-                <Button type="submit">Create Rate</Button>
+                <Button type="submit">Edit Rate</Button>
             </div>
         </form>
     );
