@@ -615,7 +615,9 @@ export async function fetchCurrenciesRatesByDate(date: Date, organisation_id: st
     const data = await sql<CurrencyRateField>`
     SELECT id, organisation_id, currency_id, rate, date
     FROM currency_rates
-    WHERE date = ${formatedDate} AND organisation_id = ${organisation_id} 
+    WHERE date <= ${formatedDate} AND organisation_id = ${organisation_id} 
+    ORDER BY date DESC
+    LIMIT 4
     `;
 
     return data.rows;
@@ -666,7 +668,7 @@ export async function fetchManagerialCurrencyIdByOrganisationId(organisation_id:
     WHERE id = ${organisation_id}
     `;
 
-    return data.rows[0];
+    return String(data.rows[0].managerial_currency_id);
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to fetch managerial currency rate.');

@@ -74,15 +74,12 @@ export async function createInvoice(formData: InvoiceType) {
         date, organisation_id
     );
     const managerial_currency_rate_id = await fetchManagerialCurrencyIdByOrganisationId(organisation_id);
-    const managerial_currency_rate_string = String(managerial_currency_rate_id);
 
     const invoice_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
-    const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_string)?.rate || 1;
+    const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
 
     currencies.map(c => console.log(c.currency_id + " " + c.rate));
 
-    console.log('managerial_currency_rate_id = ', managerial_currency_rate_id);
-    console.log('invoice_managerial_rate = ', invoice_managerial_rate);
     invoiceRates.map(invoiceRate => {
         amountWoVatInCents += invoiceRate.net_line;
         amountVatInCents += invoiceRate.vat_value;
@@ -91,23 +88,6 @@ export async function createInvoice(formData: InvoiceType) {
 
     const amount_managerial_wo_vat = Math.round(amountWoVatInCents * invoice_currency_rate / invoice_managerial_rate);
     const amount_managerial_with_vat = Math.round(amountInCents * invoice_currency_rate / invoice_managerial_rate);
-
-    console.log(`UPDATE invoices 
-            SET 
-                customer_id = ${customerId}, 
-                status = ${status}, 
-                date = ${formatedDate}, 
-                agreement_id = ${formatedAgreementId}, 
-                currency_id = ${currency_id}, 
-                organisation_id = ${organisation_id}, 
-                remarks = ${remarks},
-                amount = ${amountInCents},
-                amount_wo_vat = ${amountWoVatInCents},
-                vat_amount = ${amountVatInCents},
-                currency_rate = ${invoice_currency_rate},
-                amount_managerial_wo_vat = ${amount_managerial_wo_vat},
-                amount_managerial_with_vat = ${amount_managerial_with_vat}
-            WHERE number = ${number}`);
 
     try{
         await sql`    
