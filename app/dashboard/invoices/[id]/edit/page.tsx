@@ -1,19 +1,39 @@
 import Form from '@/app/ui/invoices/edit-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
-import { fetchInvoiceById, fetchCustomers } from '@/app/lib/data';
+import { 
+    fetchCustomers, 
+    fetchCurrencies, 
+    fetchAgreementsByCusomerIdAndOrganisationId, 
+    fetchOrganisations,
+    fetchCurrenciesRates,
+    fetchInvoiceFullById,
+    fetchInvoiceRatesByInvoiceId,
+    fetchInvoiceRatesByInvoiceNumber
+} from '@/app/lib/data';
 import { notFound } from 'next/navigation';
+import { CreateRate, CreateRateEditInvoice } from '@/app/ui/rates/buttons';
+import { Suspense } from 'react';
+import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
+import EditRatesTable from '@/app/ui/rates/edit-rates-table';
  
 export default async function Page({ params }: { params: { id: string } }) {
     const id = params.id;
 
-    const [invoice, customers] = await Promise.all([
-      fetchInvoiceById(id),
-      fetchCustomers(),
-    ]);
+    const [customers, currencies, agreements, organisations, invoice, currencies_rates] = await Promise.all([
+        fetchCustomers(),
+        fetchCurrencies(),
+        fetchAgreementsByCusomerIdAndOrganisationId('', ''),
+        fetchOrganisations(),
+        fetchInvoiceFullById(id),
+        fetchCurrenciesRates(),
+      ])
 
     if(!invoice) {
         notFound();
     }
+
+    const rates = await fetchInvoiceRatesByInvoiceNumber(invoice.number);
+    const invoice_rates = await fetchInvoiceRatesByInvoiceId(invoice.id);
 
     return (
         <main>
@@ -27,7 +47,16 @@ export default async function Page({ params }: { params: { id: string } }) {
             },
             ]}
         />
-        <Form invoice={invoice} customers={customers} />
+
+        {/* Rate Table */}
+        <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+            <CreateRateEditInvoice id={id}/>
+        </div>
+        <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
+            <EditRatesTable rates={rates} invoice_id={id}/>
+        </Suspense>
+
+        <Form customers={customers} currencies={currencies} agreements={agreements} organisations={organisations} rates={rates} invoice={invoice} currencies_rates={currencies_rates} invoice_rates={invoice_rates}/>
         </main>
     );
 }

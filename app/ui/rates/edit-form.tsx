@@ -29,6 +29,7 @@ export default function EditRateForm({
     routes,
     shipments,
     rate,
+    isCreateInvoice,
 } : {
     services: ServiceField[],
     currencies: CurrencyField[],
@@ -36,8 +37,9 @@ export default function EditRateForm({
     routes: RouteField[],
     shipments: ShipmentField[],
     rate: Rate,
+    isCreateInvoice: boolean,
 }) {
-    const updateRateWithId = updateInvoiceRate.bind(null, rate.id);
+    const updateRateWithId = updateInvoiceRate.bind(null, rate.id, isCreateInvoice);
 
     const [data, setData] = useState<RateType>();
     const {
@@ -49,14 +51,14 @@ export default function EditRateForm({
         resolver: zodResolver(InvoiceRateFormSchema)
     });
 
-    /* Don't forget to delete */
+    /* Don't forget to delete 
     React.useEffect(() => {
         const subscription = watch((value, { name, type }) =>
           console.log(value, name, type)
         )
         return () => subscription.unsubscribe()
       }, [watch]);
-    /* till here */
+     till here */
 
     const onSubmit = async (data:RateType) => {
         try {

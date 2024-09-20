@@ -25,7 +25,7 @@ export default async function Page({ params }:{ params: { id: string } }) {
           },
         ]}
       />
-      <Form services={services} currencies={currencies} vat_rates={vat_rates} routes={routes} shipments={shipments} invoice_number={invoice_number}/>
+      <Form services={services} currencies={currencies} vat_rates={vat_rates} routes={routes} shipments={shipments} invoice_number={invoice_number} isCreateInvoice={true}/>
     </main>
   );
 }

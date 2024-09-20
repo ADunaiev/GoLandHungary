@@ -2,8 +2,10 @@ import { fetchCurrencies, fetchRateById, fetchRoutes, fetchServices, fetchShipme
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import EditRateForm from '@/app/ui/rates/edit-form';
 
-export default async function Page({ params }:{ params: { id: string } }) {
-  const rate_id = params.id;
+export default async function Page({ params }:{ params: { id: string, rateid: string } }) {
+  const invoice_id = params.id;
+  const rate_id = params.rateid;
+
   const rate = await fetchRateById(rate_id);
 
   const [services, currencies, vat_rates, routes, shipments] = await Promise.all([
@@ -18,15 +20,15 @@ export default async function Page({ params }:{ params: { id: string } }) {
     <main>
       <Breadcrumbs
         breadcrumbs={[
-          { label: 'Invoice', href: '/dashboard/invoices/create' },
+          { label: 'Edit Invoice', href: `/dashboard/invoices/${invoice_id}/edit` },
           {
             label: 'Edit Rate',
-            href: `/dashboard/invoices/create/${rate_id}/edit_rate`,
+            href: `/dashboard/invoices/${invoice_id}/edit/${rate_id}/edit_rate`,
             active: true,
           },
         ]}
       />
-      <EditRateForm services={services} currencies={currencies} vat_rates={vat_rates} routes={routes} shipments={shipments} rate={rate} isCreateInvoice={true}/>
+      <EditRateForm services={services} currencies={currencies} vat_rates={vat_rates} routes={routes} shipments={shipments} rate={rate} isCreateInvoice={false}/>
     </main>
   );
 }

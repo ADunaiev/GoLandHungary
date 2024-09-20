@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { InvoiceFormSchema, InvoiceRateFormSchema } from './schemas/schema';
-import { fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceByNumber, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import { deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceByNumber, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchVatRateById, saveInvoiceRatesToDb } from './data';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -66,9 +66,12 @@ export async function createInvoice(formData: InvoiceType) {
 
     let formatedAgreementId;
     if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
+    
+    const invoice = await fetchInvoiceByNumber(number);
+
 
     await saveInvoiceRatesToDb(number, date, organisation_id, currency_id);
-    const invoice = await fetchInvoiceByNumber(number);
+    
     const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
     const currencies = await fetchCurrenciesRatesByDate(
         date, organisation_id
@@ -119,44 +122,96 @@ export async function createInvoice(formData: InvoiceType) {
     redirect('/dashboard/invoices');
 }
 
-export async function updateInvoice(id: string, prevState: State, formData: FormData) {
-    const validatedFields = UpdateInvoice.safeParse({
-        customerId: formData.get('customerId'),
-        amount: formData.get('amount'),
-        status: formData.get('status'),
+export async function updateInvoice(id: string, formData: InvoiceType) {
+    
+    const validatedFields = InvoiceFormSchema.safeParse({
+        customerId: formData.customerId,
+        status: formData.status,
+        number: formData.number,
+        date: formData.date,
+        agreement_id: formData.agreement_id,
+        currency_id: formData.currency_id,
+        organisation_id: formData.organisation_id,
+        remarks: formData.remarks,
     });
 
     if(!validatedFields.success) {
         return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: 'Missing Fields. Failed to Update Invoice.',
-        }
+            success: false,
+            error: validatedFields.error.format(),
+          };
     }
 
-    const {customerId, amount, status} = validatedFields.data;
+    const { customerId, status, number, date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    let amountInCents = 0;
+    let amountWoVatInCents = 0; 
+    let amountVatInCents = 0;
+    const formatedDate = date.toISOString().split('T')[0];
 
-    const amountInCents = amount * 100;
+    let formatedAgreementId;
+    if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
 
-    try {
-        await sql`
-            UPDATE invoices
-            SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-            WHERE id = ${id}
+    const invoice = await fetchInvoiceByNumber(number);
+    await deleteInvoiceRatesFromDb(invoice.id);
+    await saveInvoiceRatesToDb(number, date, organisation_id, currency_id);
+    const currencies = await fetchCurrenciesRatesByDate(
+        date, organisation_id
+    );
+
+    const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
+
+    const managerial_currency_rate_id = await fetchManagerialCurrencyIdByOrganisationId(organisation_id);
+
+    const invoice_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
+    const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
+
+    invoiceRates.map(r => console.log('rate = ',r.net_unit));
+
+    invoiceRates.map(invoiceRate => {
+        amountWoVatInCents += invoiceRate.net_line;
+        amountVatInCents += invoiceRate.vat_value;
+        amountInCents += invoiceRate.gross_value; 
+    });
+
+    const amount_managerial_wo_vat = Math.round(amountWoVatInCents * invoice_currency_rate / invoice_managerial_rate);
+    const amount_managerial_with_vat = Math.round(amountInCents * invoice_currency_rate / invoice_managerial_rate);
+
+    try{
+        await sql`    
+            UPDATE invoices 
+            SET 
+                customer_id = ${customerId}, 
+                status = ${status}, 
+                date = ${formatedDate}, 
+                agreement_id = ${formatedAgreementId}, 
+                currency_id = ${currency_id}, 
+                organisation_id = ${organisation_id}, 
+                remarks = ${remarks},
+                amount = ${amountInCents},
+                amount_wo_vat = ${amountWoVatInCents},
+                vat_amount = ${amountVatInCents},
+                currency_rate = ${invoice_currency_rate},
+                amount_managerial_wo_vat = ${amount_managerial_wo_vat},
+                amount_managerial_with_vat = ${amount_managerial_with_vat}
+            WHERE number = ${number}
         `;
+
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Update Invoice.',
+            message: 'Database Error: Failed to Create Invoice.'
         };
     }
 
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
+    
 }
 
 export async function deleteInvoice(id: string) {
     //throw new Error('Failed to delete invoice');
 
     try {
+        await deleteInvoiceRatesFromDb(id);
         await sql`DELETE FROM invoices WHERE id = ${id}`;
         revalidatePath('/dashboard/invoices');
         return { message: 'Deleted invoice' };
@@ -169,7 +224,7 @@ export async function deleteInvoice(id: string) {
     
 }
 
-export async function createInvoiceRate(invoice_number: string, formData: RateType) {
+export async function createInvoiceRate(invoice_number: string, isCreateInvoice: boolean , formData: RateType) {
     const validatedFields = InvoiceRateFormSchema.safeParse({
         service_id: formData.service_id,
         shipment_id: formData.shipment_id,
@@ -214,11 +269,18 @@ export async function createInvoiceRate(invoice_number: string, formData: RateTy
         };
      }
 
-     revalidatePath('/dashboard/invoices/create');
-     redirect('/dashboard/invoices/create');
+     const invoice = await fetchInvoiceByNumber(invoice_number);
+
+     if(isCreateInvoice) {
+        revalidatePath('/dashboard/invoices/create');
+        redirect('/dashboard/invoices/create');
+     } else {
+        revalidatePath(`/dashboard/invoices/${invoice.id}/edit`);
+        redirect(`/dashboard/invoices/${invoice.id}/edit`);
+     }
 }
 
-export async function updateInvoiceRate(id: string, formData: RateType) {
+export async function updateInvoiceRate(id: string, isCreateInvoice: boolean, formData: RateType) {
 
     const validatedFields = InvoiceRateFormSchema.safeParse({
         shipment_id: formData.shipment_id,
@@ -275,14 +337,35 @@ export async function updateInvoiceRate(id: string, formData: RateType) {
         }
      }
 
-     revalidatePath('/dashboard/invoices/create');
-     redirect('/dashboard/invoices/create')
+     const invoiceNumber = await fetchInvoiceNumberByRateId(id);
+     const invoice_id = (await fetchInvoiceByNumber(invoiceNumber)).id;
+
+     if(isCreateInvoice) {
+        revalidatePath('/dashboard/invoices/create');
+        redirect('/dashboard/invoices/create')
+     } else {
+        revalidatePath(`/dashboard/invoices/${invoice_id}/edit`);
+        redirect(`/dashboard/invoices/${invoice_id}/edit`);
+     }
 }
 
 export async function deleteInvoiceRate(id: string) {
     try {
         await sql`DELETE FROM rates WHERE id = ${id}`;
         revalidatePath('/dashboard/invoices/create');
+        return { message: 'Deleted rate.'};
+    } catch(error) {
+        return {
+            message: 'Database error. Failed to delete rate.'
+        }
+    }
+}
+
+export async function deleteInvoiceRateEditInvoice(id: string, rateId: string) {
+    try {
+        await sql`DELETE FROM invoice_rates WHERE rate_id = ${rateId}`;
+        await sql`DELETE FROM rates WHERE id = ${rateId}`;
+        revalidatePath(`/dashboard/invoices/${id}/edit`);
         return { message: 'Deleted rate.'};
     } catch(error) {
         return {

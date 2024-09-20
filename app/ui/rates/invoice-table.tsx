@@ -1,5 +1,5 @@
 
-import { CurrencyRateField, RateTable } from "@/app/lib/definitions";
+import { CurrencyRateField, InvoiceRateDbData, RateTable } from "@/app/lib/definitions";
 import { formatAmount, formatAmountCurrency } from "@/app/lib/utils";
 import { UpdateRate, DeleteRate } from '@/app/ui/rates/buttons'
 
@@ -8,13 +8,15 @@ export default function InvoiceTable({
   currencies_rates, 
   invoice_date, 
   organisation_id, 
-  invoice_currency_id 
+  invoice_currency_id,
+  invoice_rates,
 } : { 
   rates: RateTable[],
   currencies_rates: CurrencyRateField[],
   invoice_date: Date,
   organisation_id: string,
   invoice_currency_id: string,
+  invoice_rates: InvoiceRateDbData[],
 }) {
     function getCurrencyRate(cur_date: Date, org_id: string, cur_id: string) {
         let temp = Number(
@@ -127,18 +129,30 @@ export default function InvoiceTable({
                       <td className="whitespace-nowrap px-3 py-3">
                         {
                           /* rate.start_point_name + "-" + rate.end_point_name */
+                          typeof(invoice_date) !== 'string' && invoice_rates != null ?
+                          Number(invoice_rates.find(r => r.rate_id === rate.id)?.currency_rate) /100:
                           getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / 100
                         }
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
-                        {(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id) / 100).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits: 2})}
+                        { 
+                          (
+                            typeof(invoice_date) !== 'string' && invoice_rates != null ?
+                            Number(invoice_rates.find(r => r.rate_id === rate.id)?.net_unit) / 100 :
+                            rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id) / 100
+                          ).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits: 2})
+                        }
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
                         {rate.quantity}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
                         { 
-                          (Math.round(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id)) * rate.quantity / 100)
+                          (
+                            typeof(invoice_date) !== 'string' && invoice_rates != null ?
+                            Number(invoice_rates.find(r => r.rate_id === rate.id)?.net_line) / 100 :
+                            Math.round(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id)) * rate.quantity / 100
+                          )
                             .toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits: 2})
                           }
                       </td>
@@ -147,13 +161,19 @@ export default function InvoiceTable({
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
                         {
-                          (Math.round((Math.round(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id)) * rate.quantity) / 100 *
-                          rate.vat_rate_rate) / 10000).toLocaleString('en-GB', { minimumFractionDigits:2, maximumFractionDigits:2 })
+                          (
+                            typeof(invoice_date) !== 'string' && invoice_rates != null ?
+                            Number(invoice_rates.find(r => r.rate_id === rate.id)?.vat_value) / 100 :
+                            Math.round((Math.round(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id)) * rate.quantity) / 100 *
+                          rate.vat_rate_rate) / 10000
+                        ).toLocaleString('en-GB', { minimumFractionDigits:2, maximumFractionDigits:2 })
                         }
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
                         {
                           (
+                            typeof(invoice_date) !== 'string' && invoice_rates != null ?
+                            Number(invoice_rates.find(r => r.rate_id === rate.id)?.gross_value) / 100 :
                             (Math.round(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id)) * rate.quantity / 100) + 
                             (Math.round((Math.round(rate.rate * getCurrencyRate(invoice_date, organisation_id, rate.currency_id) / getCurrencyRate(invoice_date, organisation_id, invoice_currency_id)) * rate.quantity) / 100 *
                             rate.vat_rate_rate) / 10000)

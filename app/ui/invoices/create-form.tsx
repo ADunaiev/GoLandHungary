@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { createInvoice, State } from '@/app/lib/actions';
-import { FormEvent, Suspense, useActionState, useEffect, useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useForm } from "react-hook-form"
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RawCreateParams, z } from 'zod';
@@ -381,7 +381,7 @@ export default function Form({
 
       </div>
 
-      <InvoiceTable rates={rates} currencies_rates={currencies_rates} invoice_date={invoice_date} organisation_id={organisation_id} invoice_currency_id={currency_id} />
+      <InvoiceTable rates={rates} currencies_rates={currencies_rates} invoice_date={invoice_date} organisation_id={organisation_id} invoice_currency_id={currency_id} invoice_rates={[]}/>
 
       <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grip-">
 

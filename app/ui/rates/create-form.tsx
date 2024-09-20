@@ -29,6 +29,7 @@ export default function Form({
     routes,
     shipments,
     invoice_number,
+    isCreateInvoice,
 } : {
     services: ServiceField[],
     currencies: CurrencyField[],
@@ -36,8 +37,9 @@ export default function Form({
     routes: RouteField[],
     shipments: ShipmentField[],
     invoice_number: string,
+    isCreateInvoice: boolean,
 }) {
-    const createRateWithInvoiceNumber = createInvoiceRate.bind(null, invoice_number);
+    const createRateWithInvoiceNumber = createInvoiceRate.bind(null, invoice_number, isCreateInvoice);
 
     const [data, setData] = useState<RateType>();
     const {

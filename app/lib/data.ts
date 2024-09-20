@@ -181,6 +181,20 @@ export async function fetchInvoiceById(id: string) {
   }
 }
 
+export async function fetchInvoiceFullById(id: string) {
+  try {
+    const data = await sql<InvoiceTypeFull>`
+    SELECT * FROM invoices
+    WHERE id = ${id}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch invoice full by id.');
+  }
+}
+
 export async function fetchRateById(id: string) {
   try {
     const data = await sql<Rate>`
@@ -593,6 +607,16 @@ export async function saveInvoiceRatesToDb(
   }
 }
 
+export async function deleteInvoiceRatesFromDb(invoice_id: string) {
+  try {
+    await sql`DELETE FROM invoice_rates WHERE invoice_id = ${invoice_id}`;
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to delete invoice rates from database.');
+  }
+}
+
 export async function fetchRatesByInvoiceNumber(invoice_number: string) {
   try {
     const data = await sql<Rate>`
@@ -672,5 +696,20 @@ export async function fetchManagerialCurrencyIdByOrganisationId(organisation_id:
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to fetch managerial currency rate.');
+  }
+}
+
+export async function fetchInvoiceNumberByRateId(rate_id: string) {
+  try {
+    const data = await sql`
+    SELECT invoice_number
+    FROM rates
+    WHERE id = ${rate_id}
+    `;
+
+    return String(data.rows[0].invoice_number);
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch invoice number by rate id.')
   }
 }

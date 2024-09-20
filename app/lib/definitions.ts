@@ -70,6 +70,7 @@ export type InvoiceTypeFull = {
   amount_managerial_with_vat: number;
   number: string;
   organisation_id: string;
+  currency_rate: number;
 }
 
 export type CustomersTableType = {
