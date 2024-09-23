@@ -7,7 +7,9 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { InvoiceFormSchema, InvoiceRateFormSchema } from './schemas/schema';
-import { deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceByNumber, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import { deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import ReactPDF from '@react-pdf/renderer';
+import InvoiceToPdf from '../ui/invoices/print-form';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -43,7 +45,9 @@ export async function createInvoice(formData: InvoiceType) {
         customerId: formData.customerId,
         status: formData.status,
         number: formData.number,
+        performance_date: formData.performance_date,
         date: formData.date,
+        payment_date: formData.payment_date,
         agreement_id: formData.agreement_id,
         currency_id: formData.currency_id,
         organisation_id: formData.organisation_id,
@@ -58,11 +62,13 @@ export async function createInvoice(formData: InvoiceType) {
         };
       }
 
-    const { customerId, status, number, date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
     let amountInCents = 0;
     let amountWoVatInCents = 0; 
     let amountVatInCents = 0;
     const formatedDate = date.toISOString().split('T')[0];
+    const formatedPerformanceDate = performance_date.toISOString().split('T')[0];
+    const formatedPaymentDate = payment_date.toISOString().split('T')[0];
 
     let formatedAgreementId;
     if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
@@ -81,7 +87,7 @@ export async function createInvoice(formData: InvoiceType) {
     const invoice_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
     const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
 
-    currencies.map(c => console.log(c.currency_id + " " + c.rate));
+    //currencies.map(c => console.log(c.currency_id + " " + c.rate));
 
     invoiceRates.map(invoiceRate => {
         amountWoVatInCents += invoiceRate.net_line;
@@ -98,7 +104,9 @@ export async function createInvoice(formData: InvoiceType) {
             SET 
                 customer_id = ${customerId}, 
                 status = ${status}, 
+                performance_date = ${formatedPerformanceDate},
                 date = ${formatedDate}, 
+                payment_date = ${formatedPaymentDate},
                 agreement_id = ${formatedAgreementId}, 
                 currency_id = ${currency_id}, 
                 organisation_id = ${organisation_id}, 
@@ -128,7 +136,9 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
         customerId: formData.customerId,
         status: formData.status,
         number: formData.number,
+        performance_date: formData.performance_date,
         date: formData.date,
+        payment_date: formData.payment_date,
         agreement_id: formData.agreement_id,
         currency_id: formData.currency_id,
         organisation_id: formData.organisation_id,
@@ -142,11 +152,13 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
           };
     }
 
-    const { customerId, status, number, date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
     let amountInCents = 0;
     let amountWoVatInCents = 0; 
     let amountVatInCents = 0;
     const formatedDate = date.toISOString().split('T')[0];
+    const formatedPerformanceDate = performance_date.toISOString().split('T')[0];
+    const formatedPaymentDate = payment_date.toISOString().split('T')[0];
 
     let formatedAgreementId;
     if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
@@ -182,7 +194,9 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
             SET 
                 customer_id = ${customerId}, 
                 status = ${status}, 
+                performance_date = ${formatedPerformanceDate},
                 date = ${formatedDate}, 
+                payment_date = ${formatedPaymentDate},
                 agreement_id = ${formatedAgreementId}, 
                 currency_id = ${currency_id}, 
                 organisation_id = ${organisation_id}, 
@@ -223,6 +237,7 @@ export async function deleteInvoice(id: string) {
     
     
 }
+
 
 export async function createInvoiceRate(invoice_number: string, isCreateInvoice: boolean , formData: RateType) {
     const validatedFields = InvoiceRateFormSchema.safeParse({

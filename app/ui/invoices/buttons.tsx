@@ -1,6 +1,7 @@
-import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, PlusIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { deleteInvoice, deleteInvoiceRate } from '@/app/lib/actions';
+import { deleteInvoice, deleteInvoiceRate, printInvoice } from '@/app/lib/actions';
+
 
 export function CreateInvoice() {
   return (
@@ -37,3 +38,15 @@ export function DeleteInvoice({ id }: { id: string }) {
     </form>
   );
 }
+
+export function PrintInvoice({ id } : { id: string }) {
+  return (
+    <Link
+      href={`/dashboard/invoices/${id}/print`}
+      className="rounded-md border p-2 hover:bg-gray-100"
+    >
+      <PrinterIcon className="w-5" />
+    </Link>
+  );
+}
+

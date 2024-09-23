@@ -5,6 +5,9 @@ import { lusitana } from '@/app/ui/fonts';
 import { TableRowSkeleton } from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { CreateCustomer } from '@/app/ui/customers/buttons';
+
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
  
 export default async function Page({
   searchParams,

@@ -16,6 +16,16 @@ export type Customer = {
   image_url: string;
 };
 
+export type CustomerFull = {
+  id: string;
+  name: string;
+  email: string;
+  image_url: string;
+  code: string;
+  address_eng: string;
+  vat_number_eu: string;
+};
+
 export type Invoice = {
   id: string;
   customer_id: string;
@@ -48,11 +58,13 @@ export type InvoicesTable = {
   id: string;
   customer_id: string;
   name: string;
+  number: string;
   email: string;
   image_url: string;
   date: string;
   amount: number;
   status: 'pending' | 'paid';
+  short_name: string;
 };
 
 export type InvoiceTypeFull = {
@@ -71,6 +83,8 @@ export type InvoiceTypeFull = {
   number: string;
   organisation_id: string;
   currency_rate: number;
+  performance_date: string;
+  payment_date: string;
 }
 
 export type CustomersTableType = {
@@ -113,6 +127,27 @@ export type CurrencyField = {
 export type OrganisationField = {
   id: string;
   name_eng: string;
+};
+
+export type OrganisationFull = {
+  id: string;
+  name_eng: string;
+  address: string;
+  code: string;
+  vat_number_local: string;
+  vat_number_eu: string;
+  ceo_name: string;
+  email: string;
+};
+
+export type BankAccount = {
+  id: string;
+  organisation_id: string;
+  bank_name: string;
+  iban: string;
+  currency_id: string;
+  bank_address: string;
+  swift: string;
 };
 
 export type InvoiceForm = {

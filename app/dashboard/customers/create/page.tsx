@@ -1,5 +1,8 @@
 import Form from '@/app/ui/customers/create-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
+
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
  
 export default async function Page() {
 

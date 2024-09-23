@@ -15,6 +15,9 @@ import { CreateRate, CreateRateEditInvoice } from '@/app/ui/rates/buttons';
 import { Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import EditRatesTable from '@/app/ui/rates/edit-rates-table';
+
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
  
 export default async function Page({ params }: { params: { id: string } }) {
     const id = params.id;

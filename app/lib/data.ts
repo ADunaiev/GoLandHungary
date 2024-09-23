@@ -19,10 +19,15 @@ import {
   CurrencyRateField,
   Rate,
   InvoiceRateDbData,
+  BankAccount,
+  OrganisationFull,
+  CustomerFull,
+  Currency,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
 import { getRandomValues } from 'crypto';
+import { cache } from 'react';
 
 export async function fetchRevenue() {
   try {
@@ -109,22 +114,27 @@ export async function fetchFilteredInvoices(
   try {
     const invoices = await sql<InvoicesTable>`
       SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
+        i.id,
+        i.amount,
+        i.date,
+        i.number,
+        i.status,
+        cust.name,
+        cust.email,
+        cust.image_url,
+        cur.short_name
+      FROM invoices as i
+      JOIN customers as cust ON i.customer_id = cust.id
+      JOIN currencies as cur ON i.currency_id = cur.id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
+        cust.name ILIKE ${`%${query}%`} OR
+        cust.email ILIKE ${`%${query}%`} OR
+        i.amount::text ILIKE ${`%${query}%`} OR
+        i.date::text ILIKE ${`%${query}%`} OR
+        i.status ILIKE ${`%${query}%`} OR
+        i.number ILIKE ${`%${query}%`} OR
+        cur.short_name ILIKE ${`%${query}%`} 
+      ORDER BY i.number DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
@@ -454,18 +464,21 @@ export async function fetchInvoiceNumber() {
     from invoices
     where customer_id NOTNULL
     `;
+    
 
     let oldNumber: string = oldInvoice.rows[0].max;
+    //console.log('oldNumber = ', oldInvoice.rows[0].max);
 
     if(oldNumber.trim() === '') { oldNumber = 'GH_000001'}
 
     const newNumber = Number(oldNumber.slice(3,9)) + 1;
+    //console.log('newNumber = ', newNumber)
     
     const newNumberString = '00000' + String(newNumber);
     const length = newNumberString.length;
 
     const newStyledNumber = 'GH_' + newNumberString.slice(length-6,length)
-
+    
     return newStyledNumber;
   } catch(error) {
     console.error('Database Error:', error);
@@ -711,5 +724,170 @@ export async function fetchInvoiceNumberByRateId(rate_id: string) {
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to fetch invoice number by rate id.')
+  }
+}
+
+export async function fetchCustomerById(id: string) {
+  try {
+    const data = await sql<CustomerField>`
+      SELECT
+        customers.id,
+        customers.name
+      FROM customers
+      WHERE customers.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch customer by id.');
+  }
+}
+
+export async function fetchCustomerFullById(id: string) {
+  try {
+    const data = await sql<CustomerFull>`
+      SELECT
+        customers.id,
+        customers.name,
+        customers.email,
+        customers.image_url,
+        customers.code,
+        customers.address_eng,
+        customers.vat_number_eu
+      FROM customers
+      WHERE customers.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch customer full by id.');
+  }
+}
+
+export async function fetchCurrencyById(id: string) {
+  try {
+    const data = await sql<CurrencyField>`
+      SELECT
+        currencies.id,
+        currencies.short_name
+      FROM currencies
+      WHERE currencies.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch currency by id.');
+  }
+}
+
+export async function fetchCurrencyFullById(id: string) {
+  try {
+    const data = await sql<Currency>`
+      SELECT
+        currencies.id,
+        currencies.name_eng,
+        currencies.name_hun,
+        currencies.short_name
+      FROM currencies
+      WHERE currencies.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch currency full by id.');
+  }
+}
+
+export async function fetchAgreementById(id: string) {
+  try {
+    const data = await sql<CustomerAgreementField>`
+      SELECT
+        customers_agreements.id,
+        customers_agreements.number || ' dd. ' || customers_agreements.date as number_and_date
+      FROM customers_agreements
+      WHERE customers_agreements.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch agreement by id.');
+  }
+}
+
+export async function fetchOrganisationById(id: string) {
+  try {
+    const data = await sql<OrganisationField>`
+      SELECT
+        organisations.id,
+        organisations.name_eng
+      FROM organisations
+      WHERE organisations.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch organisation by id.');
+  }
+}
+
+export async function fetchCurrencyRateById(id: string) {
+  try {
+    const data = await sql<CurrencyRateField>`
+      SELECT
+        currency_rates.id,
+        currency_rates.organisation_id,
+        currency_rates.currency_id,
+        currency_rates.rate,
+        currency_rates.date
+      FROM currency_rates
+      WHERE currency_rates.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch currency rate by id.');
+  }
+}
+
+export async function fetchBankAccountsByCurrencyIdAndOrganisationId(
+  currency_id: string, 
+  organisation_id: string
+) {
+  try {
+    const data = await sql<BankAccount>`
+    SELECT ba.id, ba.organisation_id, ba.bank_name, ba.iban, ba.currency_id, 
+    ba.bank_address, ba.swift
+    FROM bank_accounts as ba
+    WHERE ba.currency_id = ${currency_id} AND 
+    ba.organisation_id = ${organisation_id} AND 
+    ba.is_valid = true
+    `;
+
+    return data.rows[0] || null;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch bank accounts by currency id and organisation id.');
+  }
+}
+
+export async function fetchOrganisationFullById(id: string) {
+  try {
+    const data = await sql<OrganisationFull>`
+    SELECT id, name_eng, address, code, vat_number_eu, vat_number_local, ceo_name, email
+    FROM organisations
+    WHERE id = ${id}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch organisation full by id.');
   }
 }

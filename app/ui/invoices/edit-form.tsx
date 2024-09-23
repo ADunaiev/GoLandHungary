@@ -30,6 +30,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { InvoiceFormSchema } from '@/app/lib/schemas/schema';
 import { I18nProvider } from '@react-aria/i18n';
 import InvoiceTable from '@/app/ui/rates/invoice-table';
+import InvoiceToPdf from './print-form';
 
 export default function EditInvoiceForm ({ 
   customers,
@@ -114,6 +115,8 @@ export default function EditInvoiceForm ({
   const today = new Date();
   const offset = today.getTimezoneOffset() * 60000;
   const formattedDate = (new Date(invoice.date)).getTime() - offset;
+  const formattedPerformanceDate = (new Date(invoice.performance_date)).getTime() - offset;
+  const formattedPaymentDate = (new Date(invoice.payment_date)).getTime() - offset;
 
   const {
     register,
@@ -177,6 +180,37 @@ export default function EditInvoiceForm ({
           </div>
         </div>
 
+        {/* Performance Date */}
+        <div className="mb-4">
+          <label htmlFor="performance_date" className="mb-2 block text-sm font-medium">
+            Performance date
+          </label>
+          <div className="relative">
+              <I18nProvider locale='en-GB'>
+                <input
+                  id="performance_date"
+                  type="date"
+                  placeholder='dd-mm-yyyy'
+                  {...register('performance_date')}
+                  defaultValue={ new Date(formattedPerformanceDate).toISOString().split('T')[0] }
+                  aria-describedby="performance-date-error"
+                  className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
+                />
+              </I18nProvider>
+            <CalendarDaysIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+          </div>
+          <div id="performance-date-error" aria-live="polite" aria-atomic="true">
+            { 
+              errors.performance_date?.message && 
+              (
+                  <p className="mt-2 text-sm text-red-500" key={errors.performance_date.message}>
+                    {errors.performance_date.message}
+                  </p>
+                )                      
+              }
+          </div>
+        </div>
+
         {/* Date */}
         <div className="mb-4">
           <label htmlFor="date" className="mb-2 block text-sm font-medium">
@@ -202,6 +236,37 @@ export default function EditInvoiceForm ({
               (
                   <p className="mt-2 text-sm text-red-500" key={errors.date.message}>
                     {errors.date.message}
+                  </p>
+                )                      
+              }
+          </div>
+        </div>
+
+        {/* Payment Date */}
+        <div className="mb-4">
+          <label htmlFor="payment_date" className="mb-2 block text-sm font-medium">
+            Payment date
+          </label>
+          <div className="relative">
+              <I18nProvider locale='en-GB'>
+                <input
+                  id="payment_date"
+                  type="date"
+                  placeholder='dd-mm-yyyy'
+                  {...register('payment_date')}
+                  defaultValue={ new Date(formattedPaymentDate).toISOString().split('T')[0] }
+                  aria-describedby="payment-date-error"
+                  className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
+                />
+              </I18nProvider>
+            <CalendarDaysIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+          </div>
+          <div id="payment-date-error" aria-live="polite" aria-atomic="true">
+            { 
+              errors.payment_date?.message && 
+              (
+                  <p className="mt-2 text-sm text-red-500" key={errors.payment_date.message}>
+                    {errors.payment_date.message}
                   </p>
                 )                      
               }
@@ -511,7 +576,7 @@ export default function EditInvoiceForm ({
                   {...register('status')}
                   type="radio"
                   value="pending"
-                  checked={invoice.status === 'pending'}
+                  defaultChecked={invoice.status === 'pending'}
                   className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
                   aria-describedby="status-error"
                 />
@@ -529,7 +594,7 @@ export default function EditInvoiceForm ({
                   {...register('status')}
                   type="radio"
                   value="paid"
-                  checked={invoice.status === 'paid'}
+                  defaultChecked={invoice.status === 'paid'}
                   className="h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2"
                 />
                 <label

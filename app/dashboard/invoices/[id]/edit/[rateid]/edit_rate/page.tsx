@@ -2,6 +2,9 @@ import { fetchCurrencies, fetchRateById, fetchRoutes, fetchServices, fetchShipme
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import EditRateForm from '@/app/ui/rates/edit-form';
 
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
+
 export default async function Page({ params }:{ params: { id: string, rateid: string } }) {
   const invoice_id = params.id;
   const rate_id = params.rateid;

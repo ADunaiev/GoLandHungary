@@ -1,10 +1,13 @@
 import Form from '@/app/ui/invoices/create-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
-import { Suspense } from 'react';
+import { cache, Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import RatesTable from '@/app/ui/rates/rates-table';
 import { CreateRate } from '@/app/ui/rates/buttons';
 import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber, fetchCurrenciesRates } from '@/app/lib/data';
+
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 export default async function Page() {
   const [customers, currencies, agreements, organisations, invoice, currencies_rates] = await Promise.all([
@@ -16,6 +19,9 @@ export default async function Page() {
     fetchCurrenciesRates(),
   ])
 
+
+
+  console.log(invoice.number);
   const rates = await fetchInvoiceRatesByInvoiceNumber(invoice.number);
  
   return (

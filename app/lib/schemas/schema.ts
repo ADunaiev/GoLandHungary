@@ -26,6 +26,12 @@ export const InvoiceFormSchema = z.object({
     date: z.coerce.date({
         message: 'Please enter invoice date'
     }),
+    performance_date: z.coerce.date({
+        message: 'Please enter performance date'
+    }),
+    payment_date: z.coerce.date({
+        message: 'Please enter payment date'
+    }),
     remarks: z.string(),
 
     currency_id: z.string().min(1, {
