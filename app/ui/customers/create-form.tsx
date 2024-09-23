@@ -14,10 +14,12 @@ import {
 import { Button } from '@/app/ui/button';
 import { createCustomer, CustomerState } from '@/app/lib/actions';
 import { useActionState } from 'react';
+import { useFormState } from 'react-dom';
 
 export default function Form() {
   const initialState: CustomerState = { message: null, errors: {} };
-  const [state, formAction] = useActionState(createCustomer, initialState);
+  //const [state, formAction] = useActionState(createCustomer, initialState);
+  const [state, formAction] = useFormState(createCustomer, initialState);
 
   console.log(state);
 
