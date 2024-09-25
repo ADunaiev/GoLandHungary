@@ -104,7 +104,7 @@ export default function PrintInvoice ({
     documentTitle: "Print This Document",
     onBeforePrint: () => console.log("before printing..."),
     onAfterPrint: () => console.log("after printing..."),
-    removeAfterPrint: true,
+    removeAfterPrint: false,
   });
 
   const today = new Date();
