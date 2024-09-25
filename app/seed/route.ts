@@ -1,6 +1,8 @@
 import bcrypt from 'bcrypt';
 import { db } from '@vercel/postgres';
-import { invoices, customers, revenue, users } from '../lib/placeholder-data';
+import { 
+  /*invoices, customers, revenue, */
+  users } from '../lib/placeholder-data';
 
 const client = await db.connect();
 
@@ -11,7 +13,9 @@ async function seedUsers() {
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL
+      password TEXT NOT NULL,
+      is_sale boolean NOT NULL,
+      is_documentation boolean NOT NULL,
     );
   `;
 
@@ -19,8 +23,8 @@ async function seedUsers() {
     users.map(async (user) => {
       const hashedPassword = await bcrypt.hash(user.password, 10);
       return client.sql`
-        INSERT INTO users (id, name, email, password)
-        VALUES (${user.id}, ${user.name}, ${user.email}, ${hashedPassword})
+        INSERT INTO users (id, name, email, password, is_sale, is_documentation)
+        VALUES (${user.name}, ${user.email}, ${hashedPassword}, ${user.is_sale}, ${user.is_documentation})
         ON CONFLICT (id) DO NOTHING;
       `;
     }),
@@ -29,6 +33,7 @@ async function seedUsers() {
   return insertedUsers;
 }
 
+/*
 async function seedInvoices() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
@@ -115,4 +120,4 @@ export async function GET() {
     await client.sql`ROLLBACK`;
     return Response.json({ error }, { status: 500 });
   } 
-}
+} */
