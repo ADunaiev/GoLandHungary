@@ -101,10 +101,7 @@ export default function PrintInvoice ({
   const contentToPrint = useRef(null);
 
   const handlePrint = useReactToPrint({
-    documentTitle: "Print This Document",
-    onBeforePrint: () => console.log("before printing..."),
-    onAfterPrint: () => console.log("after printing..."),
-    removeAfterPrint: false,
+    documentTitle: `Invoice ${invoice.number} from ${new Date(invoice.date).toISOString().split('T')[0]}`, 
   });
 
   const today = new Date();
