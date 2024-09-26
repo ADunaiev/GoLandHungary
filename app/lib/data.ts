@@ -23,6 +23,7 @@ import {
   OrganisationFull,
   CustomerFull,
   Currency,
+  ShipmentTypeFull,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
@@ -889,5 +890,105 @@ export async function fetchOrganisationFullById(id: string) {
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to fetch organisation full by id.');
+  }
+}
+
+export async function fetchShipmentsFullType() {
+  try {
+    const data = await sql<ShipmentTypeFull>`
+    SELECT s.id, s.number, s.date, c.id as customer_id, 
+    c.name as customer_name_eng, u1.id as sales_id,
+    u1.name as sales_name_eng, u2.id as documentation_id,
+    u2.name as documentation_name_eng, s.remarks,
+    o.id as organisation_id, o.name_eng as organisation_name_eng
+    FROM public.shipments as s
+    LEFT JOIN customers as c
+    ON s.customer_id = c.id
+    LEFT JOIN users as u1
+    on s.sale_id = u1.id
+    LEFT JOIN users as u2
+    on s.documentation_id = u2.id
+    LEFT JOIN organisations as o
+    on s.organisation_id = o.id
+    `;
+
+    return data.rows;
+  } catch(error) {
+    console.log('Database error', error);
+    throw new Error('Failed to fetch shipments full type');
+  }
+}
+
+export async function fetchFilteredShipments(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const invoices = await sql<ShipmentTypeFull>`
+      SELECT 
+        s.id, 
+        s.number, 
+        s.date, 
+        c.id as customer_id, 
+        c.name as customer_name_eng, 
+        u1.id as sales_id,
+        u1.name as sales_name_eng, 
+        u2.id as documentation_id,
+        u2.name as documentation_name_eng, 
+        s.remarks,
+        o.id as organisation_id, 
+        o.name_eng as organisation_name_eng,
+        s.status
+      FROM public.shipments as s
+      LEFT JOIN customers as c ON s.customer_id = c.id
+      LEFT JOIN users as u1 on s.sale_id = u1.id
+      LEFT JOIN users as u2 on s.documentation_id = u2.id
+      LEFT JOIN organisations as o on s.organisation_id = o.id
+      WHERE
+        s.number ILIKE ${`%${query}%`} OR
+        s.date::text ILIKE ${`%${query}%`} OR
+        c.name ILIKE ${`%${query}%`} OR
+        u1.name ILIKE ${`%${query}%`} OR
+        u2.name ILIKE ${`%${query}%`} OR
+        s.remarks ILIKE ${`%${query}%`} OR
+        s.status ILIKE ${`%${query}%`} OR
+        o.name_eng ILIKE ${`%${query}%`}
+      ORDER BY s.number DESC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return invoices.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered shipments.');
+  }
+}
+
+export async function fetchShipmentsPages(query: string) {
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM public.shipments as s
+    LEFT JOIN customers as c ON s.customer_id = c.id
+    LEFT JOIN users as u1 on s.sale_id = u1.id
+    LEFT JOIN users as u2 on s.documentation_id = u2.id
+    LEFT JOIN organisations as o on s.organisation_id = o.id
+    WHERE
+      s.number ILIKE ${`%${query}%`} OR
+      s.date::text ILIKE ${`%${query}%`} OR
+      c.name ILIKE ${`%${query}%`} OR
+      u1.name ILIKE ${`%${query}%`} OR
+      u2.name ILIKE ${`%${query}%`} OR
+      s.remarks ILIKE ${`%${query}%`} OR
+      s.status ILIKE ${`%${query}%`} OR
+      o.name_eng ILIKE ${`%${query}%`}
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of shipments.');
   }
 }

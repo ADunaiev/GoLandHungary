@@ -187,6 +187,23 @@ export type ShipmentField = {
   number_date: string;
 }
 
+export type ShipmentTypeFull = {
+  id: string;
+  number: string;
+  date: string;
+  customer_id: string;
+  customer_name_eng: string;
+  sales_id: string;
+  sales_name_eng: string;
+  documentation_id: string;
+  documentation_name_eng: string;
+  remarks: string;
+  organisation_id: string;
+  organisation_name_eng: string;
+  status: 'in_process' | 'delivered';
+}
+
+
 export type Rate = {
   id: string;
   shipment_id: string;

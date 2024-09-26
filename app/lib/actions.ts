@@ -463,4 +463,17 @@ export async function createCustomer(prevState: CustomerState, formData: FormDat
     redirect('/dashboard/customers');
 }
 
+export async function deleteShipment(id: string) {
 
+    try {
+        await sql`DELETE FROM shipments WHERE id = ${id}`;
+        revalidatePath('/dashboard/shipments');
+        return { message: 'Deleted shipment' };
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Shipment.',
+        };
+    }
+    
+    
+}
