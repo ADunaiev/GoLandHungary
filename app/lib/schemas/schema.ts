@@ -72,3 +72,28 @@ export const InvoiceRateFormSchema = z.object({
 
 export type RateType = z.infer<typeof InvoiceRateFormSchema>;
 
+export const ShipmentFormSchema = z.object({
+    customerId: z.string().min(1, {
+        message: 'Please select a customer',
+    }),
+    salesId: z.string().min(1, {
+        message: 'Please select a sale',
+    }),
+    documentationId: z.string().min(1, {
+        message: 'Please select a documentation',
+    }),
+    organisation_id: z.string().min(1, {
+        message: 'Please choose organsation'
+    }),
+    date: z.coerce.date({
+        message: 'Please enter shipment date'
+    }),
+    status: z.enum(['in_process', 'delivered'], {
+        message: 'Please select an shipment status.',
+    }),
+    remarks: z.string(),
+    customer_reference: z.string(),
+});
+
+export type ShipmentType = z.infer<typeof ShipmentFormSchema>;
+

@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { InvoiceFormSchema, InvoiceRateFormSchema } from './schemas/schema';
-import { deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import { InvoiceFormSchema, InvoiceRateFormSchema, ShipmentFormSchema, ShipmentType } from './schemas/schema';
+import { deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchShipmentNumber, fetchVatRateById, saveInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 
@@ -461,6 +461,107 @@ export async function createCustomer(prevState: CustomerState, formData: FormDat
 
     revalidatePath('/dashboard/customers');
     redirect('/dashboard/customers');
+}
+
+export async function createShipment(formData: ShipmentType) {
+    const validatedFields = ShipmentFormSchema.safeParse({
+        customerId: formData.customerId,
+        status: formData.status,
+        salesId: formData.salesId,
+        documentationId: formData.documentationId,
+        date: formData.date,
+        organisation_id: formData.organisation_id,
+        remarks: formData.remarks,
+        customer_reference: formData.customer_reference,
+    });
+
+    if (!validatedFields.success) {
+        
+        return {
+          success: false,
+          error: validatedFields.error.format(),
+        };
+      }
+
+    const { customerId, status, salesId, documentationId, date, organisation_id, remarks, customer_reference } = validatedFields.data;
+
+    const formatedDate = date.toISOString().split('T')[0];   
+    const number = await fetchShipmentNumber();
+
+    try{
+        await sql`    
+            INSERT INTO shipments (customer_id, status, date, organisation_id, 
+            remarks, number, customer_reference, sale_id, documentation_id) 
+            VALUES
+            (
+                ${customerId}, 
+                ${status}, 
+                ${formatedDate}, 
+                ${organisation_id}, 
+                ${remarks},
+                ${number},
+                ${customer_reference},
+                ${salesId},
+                ${documentationId}
+            )
+        `;
+
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Create Shipment.'
+        };
+    }
+
+    revalidatePath('/dashboard/shipments');
+    redirect('/dashboard/shipments');
+}
+
+export async function updateShipment(id: string, formData: ShipmentType) {
+    const validatedFields = ShipmentFormSchema.safeParse({
+        customerId: formData.customerId,
+        status: formData.status,
+        date: formData.date,
+        organisation_id: formData.organisation_id,
+        remarks: formData.remarks,
+        salesId: formData.salesId,
+        documentationId: formData.documentationId,
+        customer_reference: formData.customer_reference,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+          };
+    }
+
+    const { customerId, status, date, organisation_id, remarks, salesId, documentationId, customer_reference } = validatedFields.data;
+
+    const formatedDate = date.toISOString().split('T')[0];
+
+    try{
+        await sql`    
+            UPDATE shipments 
+            SET 
+                customer_id = ${ customerId }, 
+                status = ${ status }, 
+                date = ${ formatedDate }, 
+                organisation_id = ${ organisation_id }, 
+                remarks = ${ remarks },
+                sale_id = ${ salesId },
+                documentation_id = ${ documentationId },
+                customer_reference = ${ customer_reference }
+            WHERE id = ${ id }
+        `;
+
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Update Shipment.'
+        };
+    }
+
+    revalidatePath('/dashboard/shipments');
+    redirect('/dashboard/shipments');
 }
 
 export async function deleteShipment(id: string) {

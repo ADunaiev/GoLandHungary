@@ -10,6 +10,7 @@
   "dependencies": {
     "@conform-to/react": "^1.1.5",
     "@conform-to/zod": "^1.1.5",
+    "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.4",
     "@hookform/resolvers": "^3.9.0",
     "@pdfme/common": "^4.5.2",

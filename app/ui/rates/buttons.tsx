@@ -29,6 +29,7 @@ export function CreateRateEditInvoice({ id }:{
     );
 }
 
+
 export function UpdateRate({ id }: { id: string }) {
   return (
     <Link

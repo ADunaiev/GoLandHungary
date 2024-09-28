@@ -19,10 +19,12 @@ import { useState } from 'react';
 import { useForm } from "react-hook-form"
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RawCreateParams, z } from 'zod';
-import { InvoiceFormSchema } from '@/app/lib/schemas/schema';
+import { InvoiceFormSchema, ShipmentType } from '@/app/lib/schemas/schema';
 import { I18nProvider } from '@react-aria/i18n';
 import React from 'react';
 import InvoiceTable from '../rates/invoice-table';
+import { CreateShipment } from '../shipments/buttons';
+import { CreateInvoice } from './buttons';
 
 type InvoiceType = z.infer<typeof InvoiceFormSchema>;
 
@@ -131,7 +133,7 @@ export default function Form({
 
   const onSubmit = async (data: InvoiceType) => {
     try{
-      await createInvoice(data);
+      await createInvoice(data)
     } catch (e) {
       console.log(e);
     }

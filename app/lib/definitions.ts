@@ -9,6 +9,11 @@ export type User = {
   password: string;
 };
 
+export type UserField = {
+  id: string;
+  name: string;
+};
+
 export type Customer = {
   id: string;
   name: string;
@@ -201,6 +206,7 @@ export type ShipmentTypeFull = {
   organisation_id: string;
   organisation_name_eng: string;
   status: 'in_process' | 'delivered';
+  customer_reference: string;
 }
 
 

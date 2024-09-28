@@ -12,14 +12,14 @@ export default function ShipmentStatus({ status }: { status: string }) {
       className={clsx(
         'inline-flex items-center rounded-full px-2 py-1 text-xs',
         {
-          'bg-gray-100 text-gray-500': status === 'in_progress',
+          'bg-gray-100 text-gray-500': status === 'in_process',
           'bg-green-500 text-white': status === 'delivered',
         },
       )}
     >
-      {status === 'in_progress' ? (
+      {status === 'in_process' ? (
         <>
-          in_progress
+          in_process
           <ArrowRightIcon className="ml-1 w-4 text-gray-500" />
         </>
       ) : null}

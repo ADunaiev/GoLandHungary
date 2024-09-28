@@ -24,6 +24,7 @@ import {
   CustomerFull,
   Currency,
   ShipmentTypeFull,
+  UserField,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
@@ -990,5 +991,98 @@ export async function fetchShipmentsPages(query: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch total number of shipments.');
+  }
+}
+
+export async function fetchSales() {
+  try {
+    const data = await sql<UserField>`
+      SELECT
+        id,
+        name
+      FROM users
+      WHERE is_sale = true
+      ORDER BY name ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch sales.');
+  }
+}
+
+export async function fetchDocumentations() {
+  try {
+    const data = await sql<UserField>`
+      SELECT
+        id,
+        name
+      FROM users
+      WHERE is_documentation = true
+      ORDER BY name ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch documentations.');
+  }
+}
+
+export async function fetchShipmentNumber() {
+  try {
+    const oldShipment = await sql`
+    select max(number)
+    from shipments
+    where customer_id NOTNULL
+    `;
+    
+
+    let oldNumber: string = oldShipment.rows[0].max;
+    //console.log('oldNumber = ', oldInvoice.rows[0].max);
+
+    if(oldNumber.trim() === '') { oldNumber = '000001'}
+
+    const newNumber = Number(oldNumber.slice(0,6)) + 1;
+    //console.log('newNumber = ', newNumber)
+    
+    const newNumberString = '00000' + String(newNumber);
+    const length = newNumberString.length;
+
+    const newStyledNumber = newNumberString.slice(length-6,length)
+    
+    return newStyledNumber;
+  } catch(error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch shipment number.');
+  }
+}
+
+export async function fetchShipmentFullById(id: string) {
+  try {
+    const data = await sql<ShipmentTypeFull>`
+    SELECT s.id, s.number, s.date, c.id as customer_id, 
+    c.name as customer_name_eng, u1.id as sales_id,
+    u1.name as sales_name_eng, u2.id as documentation_id,
+    u2.name as documentation_name_eng, s.remarks,
+    o.id as organisation_id, o.name_eng as organisation_name_eng,
+    s.customer_reference, s.status
+    FROM public.shipments as s
+    LEFT JOIN customers as c
+    ON s.customer_id = c.id
+    LEFT JOIN users as u1
+    on s.sale_id = u1.id
+    LEFT JOIN users as u2
+    on s.documentation_id = u2.id
+    LEFT JOIN organisations as o
+    on s.organisation_id = o.id
+    WHERE s.id = ${id}
+    `;
+    
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to fetch shipment full by id.');
   }
 }
