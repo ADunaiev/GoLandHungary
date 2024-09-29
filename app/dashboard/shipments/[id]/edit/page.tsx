@@ -4,30 +4,43 @@ import {
     fetchCustomers, 
     fetchDocumentations, 
     fetchOrganisations,
+    fetchRatesByShipmentId,
+    fetchRoutesByShipmentId,
     fetchSales,
     fetchShipmentFullById,
 
 } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
-import { CreateRate, CreateRateEditInvoice } from '@/app/ui/rates/buttons';
+import { CreateRate, CreateRateEditInvoice, CreateRateFromShipment } from '@/app/ui/rates/buttons';
 import { Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import EditRatesTable from '@/app/ui/rates/edit-rates-table';
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react';
 import { CalculatorIcon, DocumentDuplicateIcon, InformationCircleIcon, ListBulletIcon, MapIcon } from '@heroicons/react/24/outline';
+import RatesTable from '@/app/ui/rates/rates-table';
+import { CreateRouteFromShipment } from '@/app/ui/routes/buttons';
+import ShipmentRoutesTable from '@/app/ui/routes/routes-table';
+import ShipmentInfoPanel from '@/app/ui/shipments/shipment-info';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
  
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params, searchParams }: { 
+    params: { id: string },
+    searchParams?: { tab?: string }
+}) {
     const id = params.id;
+    const tabIndex = Number(searchParams?.tab) || 0;
+    console.log('tab = ', tabIndex);
 
-    const [customers, organisations, sales, documentations, shipment] = await Promise.all([
+    const [customers, organisations, sales, documentations, shipment, rates, routes] = await Promise.all([
         fetchCustomers(),
         fetchOrganisations(),
         fetchSales(),
         fetchDocumentations(),
         fetchShipmentFullById(id),
+        fetchRatesByShipmentId(id),
+        fetchRoutesByShipmentId(id),
     ]);
 
     if(!shipment) {
@@ -47,56 +60,74 @@ export default async function Page({ params }: { params: { id: string } }) {
             ]}
         />
 
-            <TabGroup>
-                <TabList className="flex gap-8 border-b border-gray-200 border-b mb-4">
+        <ShipmentInfoPanel shipment={shipment} />
 
-                <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
-                    data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
-                    data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
-                    data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
-                        <InformationCircleIcon className='w-6' />
-                        <p className='hidden md:block'>Info</p>
-                </Tab>
-                <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
-                    data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
-                    data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
-                    data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
-                        <MapIcon className='w-6' />
-                        <p className='hidden md:block'>Routes</p>
-                </Tab>
-                <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
-                    data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
-                    data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
-                    data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
-                        <ListBulletIcon className='w-6' />
-                        <p className='hidden md:block'>Units</p>
-                </Tab>
-                <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
-                    data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
-                    data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
-                    data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
-                        <CalculatorIcon className='w-6' />
-                        <p className='hidden md:block'>Rates</p>
-                </Tab>
-                <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
-                    data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
-                    data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
-                    data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
-                        <DocumentDuplicateIcon className='w-6' />
-                        <p className='hidden md:block'>Invoices</p>
-                </Tab>
+        <TabGroup defaultIndex={tabIndex}>
+            <TabList className="flex gap-8 border-b border-gray-200 border-b mb-4">
 
-                </TabList>
-                <TabPanels>
-                <TabPanel>
-                    <EditShipmentForm customers={customers} organisations={organisations} sales={sales} documentations={documentations} shipment={shipment}/>
-                </TabPanel>
-                <TabPanel>Routes info</TabPanel>
-                <TabPanel>Units info</TabPanel>
-                <TabPanel>Rates info</TabPanel>
-                <TabPanel>Invoices info</TabPanel>
-                </TabPanels>
-            </TabGroup>
+            <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
+                data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
+                data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
+                data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
+                    <InformationCircleIcon className='w-6' />
+                    <p className='hidden md:block'>Info</p>
+            </Tab>
+            <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
+                data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
+                data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
+                data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
+                    <MapIcon className='w-6' />
+                    <p className='hidden md:block'>Routes</p>
+            </Tab>
+            <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
+                data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
+                data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
+                data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
+                    <ListBulletIcon className='w-6' />
+                    <p className='hidden md:block'>Units</p>
+            </Tab>
+            <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
+                data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
+                data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
+                data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
+                    <CalculatorIcon className='w-6' />
+                    <p className='hidden md:block'>Rates</p>
+            </Tab>
+            <Tab className='flex gap-2 py-2 text-sm/6 font-semibold text-gray-500 focus:outline-none 
+                data-[selected]:text-blue-600 data-[selected]:border-b-2 data-[selected]:border-blue-600 
+                data-[selected]:data-[hover]:text-blue-600 data-[selected]:data-[hover]:border-b-2 data-[selected]:data-[hover]:border-blue-600 
+                data-[hover]:text-gray-700 data-[hover]:border-b-2 data-[hover]:border-gray-400'>
+                    <DocumentDuplicateIcon className='w-6' />
+                    <p className='hidden md:block'>Invoices</p>
+            </Tab>
+
+            </TabList>
+            <TabPanels>
+            <TabPanel>
+                <EditShipmentForm customers={customers} organisations={organisations} sales={sales} documentations={documentations} shipment={shipment}/>
+            </TabPanel>
+            <TabPanel>
+                {/* Route Tab */}
+                <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+                    <CreateRouteFromShipment shipment_id={id}/>
+                </div>
+                <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
+                    <ShipmentRoutesTable routes={routes} shipment_id={id}/>
+                </Suspense>
+            </TabPanel>
+            <TabPanel>Units info</TabPanel>
+            <TabPanel>
+                {/* Rate Tab */}
+                <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+                    <CreateRateFromShipment id={id}/>
+                </div>
+                <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
+                    <RatesTable rates={rates}/>
+                </Suspense>
+            </TabPanel>
+            <TabPanel>Invoices info</TabPanel>
+            </TabPanels>
+        </TabGroup>
         </main>
     );
 }

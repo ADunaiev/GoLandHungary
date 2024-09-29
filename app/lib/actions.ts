@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { InvoiceFormSchema, InvoiceRateFormSchema, ShipmentFormSchema, ShipmentType } from './schemas/schema';
-import { deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchShipmentNumber, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import { InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType } from './schemas/schema';
+import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchVatRateById, saveInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 
@@ -295,6 +295,55 @@ export async function createInvoiceRate(invoice_number: string, isCreateInvoice:
      }
 }
 
+export async function createRateFromShipment(shipment_id: string, formData: RateTypeForShipment) {
+    const validatedFields = RateFormSchemaForShipment.safeParse({
+        service_id: formData.service_id,
+        route_id: formData.route_id,
+        rate: formData.rate,
+        quantity: formData.quantity,
+        currency_id: formData.currency_id,
+        vat_rate_id: formData.vat_rate_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { service_id, route_id, rate, quantity, currency_id, vat_rate_id}
+     = validatedFields.data;
+
+    let shipmentId, routeId;
+
+    shipmentId = shipment_id;
+    if(route_id === "") { routeId = null } else { routeId = route_id }
+
+     const rateInCents = rate * 100;
+     const vat_rate = await fetchVatRateById(vat_rate_id);
+     const netAmountInCents = Math.trunc(rateInCents * quantity);
+     const vatAmountInCents = Math.trunc(netAmountInCents * vat_rate.rate / 10000);
+     const grossAmountInCents = netAmountInCents + vatAmountInCents;
+    
+     try {
+        await sql`
+        INSERT INTO rates (service_id, shipment_id, route_id, rate, quantity, net_amount, currency_id, vat_rate_id, vat_amount, gross_amount) VALUES
+        (${service_id}, ${shipmentId}, ${routeId}, ${rateInCents}, ${quantity}, ${netAmountInCents}, ${currency_id}, ${vat_rate_id}, ${vatAmountInCents}, ${grossAmountInCents})
+        `;
+
+     } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Create Rate from Shipment'
+        };
+     }
+
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=3`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit?tab=3`);
+
+}
+
 export async function updateInvoiceRate(id: string, isCreateInvoice: boolean, formData: RateType) {
 
     const validatedFields = InvoiceRateFormSchema.safeParse({
@@ -408,6 +457,9 @@ export async function authenticate(
     }
 }
 
+
+{/* Customers */}
+
 const CustomerFormSchema = z.object({
     id: z.string(),
     name: z.string({
@@ -420,7 +472,6 @@ const CustomerFormSchema = z.object({
         invalid_type_error: 'Please enter valid url.'
     }),
 });
-
 const CreateCustomer = CustomerFormSchema.omit({id:true});
 
 export type CustomerState = {
@@ -462,6 +513,8 @@ export async function createCustomer(prevState: CustomerState, formData: FormDat
     revalidatePath('/dashboard/customers');
     redirect('/dashboard/customers');
 }
+
+{/* Shipments */}
 
 export async function createShipment(formData: ShipmentType) {
     const validatedFields = ShipmentFormSchema.safeParse({
@@ -573,6 +626,74 @@ export async function deleteShipment(id: string) {
     } catch (error) {
         return {
             message: 'Database Error: Failed to Delete Shipment.',
+        };
+    }
+    
+    
+}
+
+{/* Routes */}
+
+export async function createRouteFromShipment(shipment_id: string, formData: RouteTypeSchema) {
+    
+    const validatedFields = RouteFormSchema.safeParse({
+        start_city_id: formData.start_city_id,
+        end_city_id: formData.end_city_id,
+        transport_type_id: formData.transport_type_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { start_city_id, end_city_id, transport_type_id }
+     = validatedFields.data;
+
+    let route_id = await fetchRouteIdByCitiesAndTransport(
+        start_city_id, end_city_id, transport_type_id
+    );
+
+    if(route_id === '') {
+    
+        try {
+            await sql`
+            INSERT INTO routes (start_city_id, end_city_id, transport_type_id) VALUES
+            (${start_city_id}, ${end_city_id}, ${transport_type_id})
+            `;
+
+        } catch (error) {
+            console.log(error);
+            return {
+                message: 'Database error: Failed to Create Route from Shipment'
+            };
+        }
+
+        route_id = await fetchRouteIdByCitiesAndTransport(
+            start_city_id, end_city_id, transport_type_id
+        );
+    }
+     
+    if (route_id !== '') {
+     await createShipmentRouteInDb(shipment_id, route_id);
+    }
+
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=1`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit?tab=1`);
+
+}
+
+export async function deleteRouteFromShipment(id: string) {
+
+    try {
+        await sql`DELETE FROM shipment_routes WHERE route_id = ${id}`;
+        revalidatePath(`/dashboard/shipments/${id}/edit?tab=1`);
+        return { message: 'Route deleted from shipment' };
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Route from Shipment.',
         };
     }
     

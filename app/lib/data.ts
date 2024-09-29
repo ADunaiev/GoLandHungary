@@ -25,6 +25,9 @@ import {
   Currency,
   ShipmentTypeFull,
   UserField,
+  RouteFullType,
+  CityField,
+  TransportTypeField,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
@@ -1084,5 +1087,152 @@ export async function fetchShipmentFullById(id: string) {
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to fetch shipment full by id.');
+  }
+}
+
+export async function fetchRatesByShipmentId(id: string) {
+  try {
+    const data = await sql<RateTable>`
+    SELECT r.id, s.id as shipment_id, s.number as shipment_number,
+    ro.id as route_id, c1.name_eng as start_point_name,
+    c2.name_eng as end_point_name, se.id as service_id, 
+    se.name_eng as service_name, r.rate as rate,
+    cu.id as currency_id, cu.short_name as currency_name,
+    vr.id as vat_rate_id, vr.rate as vat_rate_rate,
+    vr.name_eng as vat_rate_name, r.quantity
+    FROM rates as r
+    LEFT JOIN shipments as s
+    ON r.shipment_id = s.id
+    LEFT JOIN routes as ro
+    ON r.route_id = ro.id
+    LEFT JOIN cities as c1
+    ON ro.start_city_id = c1.id
+    LEFT JOIN cities as c2
+    ON ro.end_city_id = c2.id
+    LEFT JOIN services as se
+    ON r.service_id = se.id
+    LEFT JOIN currencies as cu
+    ON r.currency_id = cu.id
+    LEFT JOIN vat_rates as vr
+    ON r.vat_rate_id = vr.id
+    LEFT JOIN invoice_rates as ir
+    ON r.id = ir.rate_id
+    WHERE r.shipment_id = ${id}
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch rates by shipment id.');
+  }
+}
+
+export async function fetchShipmentById(id: string) {
+  try {
+    const data = await sql<ShipmentField>`
+    SELECT id, number || ' dd. ' || date as number_date
+    FROM shipments
+    WHERE id = ${id}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch shipment by id.')
+  }
+}
+
+export async function fetchRoutesByShipmentId(id: string) {
+  try {
+    const data = await sql<RouteFullType>`
+    select r.id, 
+    r.start_city_id, c1.name_eng as start_city_name,
+    r.end_city_id, c2.name_eng as end_city_name,
+    r.transport_type_id, tt.name_eng as transport_type_name,
+    tt.image_url
+    from routes as r
+    left join cities as c1
+    on r.start_city_id = c1.id
+    left join cities as c2
+    on r.end_city_id = c2.id
+    left join transport_types as tt
+    on r.transport_type_id = tt.id
+    left join shipment_routes as sr
+    on r.id = sr.route_id
+    WHERE sr.shipment_id = ${id}
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch routes by shipment id.');
+  }
+}
+
+export async function fetchCities() {
+  try {
+    const data = await sql<CityField>`
+      SELECT
+        id,
+        name_eng
+      FROM cities
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all cities.');
+  }
+}
+
+export async function fetchTransportTypes() {
+  try {
+    const data = await sql<TransportTypeField>`
+      SELECT
+        id,
+        name_eng
+      FROM transport_types
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all transport types.');
+  }
+}
+
+export async function createShipmentRouteInDb(shipment_id: string, route_id: string) {
+  try {
+    await sql`
+    INSERT INTO shipment_routes (shipment_id, route_id) VALUES
+    (${shipment_id}, ${route_id})
+    `;
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to create Shipment_Route in database')
+  }
+}
+
+export async function fetchRouteIdByCitiesAndTransport(
+  start_city_id: string, 
+  end_city_id: string, 
+  transport_type_id: string
+) {
+  try {
+    const data = await sql`
+    SELECT id FROM routes 
+    WHERE 
+      start_city_id = ${start_city_id} AND
+      end_city_id = ${end_city_id} AND
+      transport_type_id = ${transport_type_id}
+    `;
+
+
+    return data.rows[0] == null ? '' : String( data.rows[0].id);
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch route id by cities and transport')
   }
 }

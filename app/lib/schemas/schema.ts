@@ -72,6 +72,9 @@ export const InvoiceRateFormSchema = z.object({
 
 export type RateType = z.infer<typeof InvoiceRateFormSchema>;
 
+export const RateFormSchemaForShipment = InvoiceRateFormSchema.omit({shipment_id: true});
+export type RateTypeForShipment = z.infer<typeof RateFormSchemaForShipment>
+
 export const ShipmentFormSchema = z.object({
     customerId: z.string().min(1, {
         message: 'Please select a customer',
@@ -97,3 +100,13 @@ export const ShipmentFormSchema = z.object({
 
 export type ShipmentType = z.infer<typeof ShipmentFormSchema>;
 
+export const RouteFormSchema = z.object({
+    start_city_id: z.string()
+        .min(1, { message: 'Please choose a service' }),
+    end_city_id: z.string()
+        .min(1, { message: 'Please choose a currency' }),
+    transport_type_id: z.string()
+        .min(1, { message: 'Please choose a vat rate' }),
+});
+
+export type RouteTypeSchema = z.infer<typeof RouteFormSchema>

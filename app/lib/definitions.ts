@@ -14,6 +14,16 @@ export type UserField = {
   name: string;
 };
 
+export type CityField = {
+  id: string;
+  name_eng: string;
+};
+
+export type TransportTypeField = {
+  id: string;
+  name_eng: string;
+};
+
 export type Customer = {
   id: string;
   name: string;
@@ -224,6 +234,17 @@ export type Rate = {
 export type RouteField = {
   id: string,
   start_end: string;
+}
+
+export type RouteFullType = {
+  id: string,
+  start_city_id: string;
+  start_city_name: string;
+  end_city_id: string;
+  end_city_name: string;
+  transport_type_id: string;
+  transport_type_name: string;
+  image_url: string;
 }
 
 export type CurrencyRateField = {
