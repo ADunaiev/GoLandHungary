@@ -28,6 +28,9 @@ import {
   RouteFullType,
   CityField,
   TransportTypeField,
+  ShipmentRouteUnitTypeFull,
+  UnitField,
+  UnitTypeField,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
@@ -1234,5 +1237,130 @@ export async function fetchRouteIdByCitiesAndTransport(
   } catch(error) {
     console.log('Database error: ', error)
     throw new Error('Failed to fetch route id by cities and transport')
+  }
+}
+
+export async function fetchUnitsByShipmentId(
+  shipment_id: string) {
+  try {
+    const data = await sql<ShipmentRouteUnitTypeFull>`
+    SELECT 
+    u.id, 
+    u.number, 
+    u.unit_type_id, 
+    ut.name_eng as unit_type_name,
+    sru.vehicle_id, 
+    v.number as vehicle_number,
+    v.transport_type_id,
+    v.vehicle_type_id, 
+    vt.name_eng as vehicle_type_name,
+    v.driver_id, 
+    d.name_eng as driver_name, 
+    d.phone as driver_phone,
+    sru.shipment_id,
+    sru.route_id,
+    sru.start_date,
+    sru.end_date
+    FROM public.units as u
+    LEFT JOIN unit_types as ut
+    ON u.unit_type_id = ut.id
+    LEFT JOIN shipment_route_units as sru
+    ON u.id = sru.unit_id
+    LEFT JOIN vehicles as v
+    ON sru.vehicle_id = v.id
+    LEFT JOIN vehicles_types as vt
+    ON v.vehicle_type_id = vt.id
+    LEFT JOIN drivers as d
+    ON v.driver_id = d.id
+    WHERE sru.shipment_id = ${shipment_id}
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch units by shipment id and route id.');
+  }
+}
+
+export async function fetchFilteredUnits(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const units = await sql<UnitField>`
+      SELECT 
+        u.id, 
+        u.number, 
+        ut.name_eng as unit_type_name
+      FROM public.units as u
+      LEFT JOIN unit_types as ut
+      ON u.unit_type_id = ut.id
+      WHERE
+        u.number ILIKE ${`%${query}%`} OR
+        ut.name_eng ILIKE ${`%${query}%`} 
+      ORDER BY ut.name_eng ASC, u.number ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return units.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered units.');
+  }
+}
+
+export async function fetchUnitsPages(query: string) {
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM public.units as u
+    LEFT JOIN unit_types as ut ON u.unit_type_id = ut.id
+    WHERE
+      u.number ILIKE ${`%${query}%`} OR
+      ut.name_eng ILIKE ${`%${query}%`}
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of units.');
+  }
+}
+
+export async function fetchUnitIdByNumberAndType(
+  number: string, 
+  unit_type_id: string, 
+) {
+  try {
+    const data = await sql`
+    SELECT id FROM units 
+    WHERE 
+      number = ${number} AND
+      unit_type_id = ${unit_type_id}
+    `;
+
+    return data.rows[0] == null ? '' : String( data.rows[0].id);
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch unit id by number and type.')
+  }
+}
+
+export async function fetchUnitTypes() {
+  try {
+    const data = await sql<UnitTypeField>`
+      SELECT
+        id,
+        name_eng
+      FROM unit_types
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all unit types.');
   }
 }

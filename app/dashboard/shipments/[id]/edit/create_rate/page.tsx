@@ -3,6 +3,9 @@ import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import Form from '@/app/ui/rates/create-form'
 import CreateRateFormFromShipments from '@/app/ui/rates/create-form-from-shipments';
 
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
+
 export default async function Page({ params }:{ params: { id: string } }) {
   const shipment_id = params.id;
 

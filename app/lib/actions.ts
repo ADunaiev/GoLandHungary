@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType } from './schemas/schema';
-import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import { InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema } from './schemas/schema';
+import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, saveInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 
@@ -695,7 +695,90 @@ export async function deleteRouteFromShipment(id: string) {
         return {
             message: 'Database Error: Failed to Delete Route from Shipment.',
         };
+    }   
+}
+
+{/* Units */}
+
+export async function createUnit(shipment_id: string, route_id: string, formData: UnitTypeSchema) {
+    
+    const validatedFields = UnitFormSchema.safeParse({
+        number: formData.number,
+        unit_type_id: formData.unit_type_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
     }
+
+    const { number, unit_type_id }
+     = validatedFields.data;
+
+    let unit_id = await fetchUnitIdByNumberAndType(
+        number, unit_type_id
+    );
+
+    if(unit_id === '') {  
+        try {
+            await sql`
+            INSERT INTO units (number, unit_type_id) VALUES
+            (${number}, ${unit_type_id})
+            `;
+
+        } catch (error) {
+            console.log(error);
+            return {
+                message: 'Database error: Failed to Create Unit from Shipment.'
+            };
+        }
+
+        revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/add_unit`);
+        redirect(`/dashboard/shipments/${shipment_id}/edit/${route_id}/add_unit`);
+
+    } else {
+        throw new Error('Unit already exists!')
+    }
+}
+
+export async function addUnitToShipmentRoute(shipment_id: string, route_id: string, unit_id: string) {
+
+    try {
+        await sql`
+            INSERT INTO shipment_route_units (shipment_id, route_id, unit_id) VALUES
+            (${shipment_id}, ${route_id}, ${unit_id})
+            `;
+        revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/add_unit`);
+        return { message: 'Unit added to shipment route units' };
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Add Unit to from Shipment Route Units.',
+        };
+    }   
     
-    
+}
+
+export async function deleteUnitFromShipmentRoute(
+    shipment_id: string,
+    route_id: string,
+    unit_id: string,
+) {
+
+    try {
+        await sql`
+            DELETE FROM shipment_route_units
+            WHERE 
+                shipment_id = ${shipment_id} AND
+                route_id = ${route_id} AND
+                unit_id = ${unit_id}
+        `;
+        revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
+        return { message: 'Unit deleted from shipment route units.' };
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Unit from Shipment Route Units.',
+        };
+    }   
 }

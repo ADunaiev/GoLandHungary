@@ -284,5 +284,34 @@ export type InvoiceRateDbData = {
   gross_value: number
 }
 
+export type UnitField = {
+  id: string,
+  number: string,
+  unit_type_name: string,
+}
+
+export type UnitTypeField = {
+  id: string,
+  name_eng: string,
+}
+
+export type ShipmentRouteUnitTypeFull = {
+  id: string,
+  number: string,
+  unit_type_id: string, 
+  unit_type_name: string,
+  vehicle_id: string, 
+  vehicle_number: string,
+  transport_type_id: string,
+  vehicle_type_id: string, 
+  vehicle_type_name: string,
+  driver_id: string, 
+  driver_name: string, 
+  driver_phone: string,
+  shipment_id: string,
+  route_id: string,
+  start_date: string,
+  end_date: string,
+}
 
 

@@ -8,7 +8,7 @@ import {
     fetchRoutesByShipmentId,
     fetchSales,
     fetchShipmentFullById,
-
+    fetchUnitsByShipmentId
 } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import { CreateRate, CreateRateEditInvoice, CreateRateFromShipment } from '@/app/ui/rates/buttons';
@@ -21,6 +21,7 @@ import RatesTable from '@/app/ui/rates/rates-table';
 import { CreateRouteFromShipment } from '@/app/ui/routes/buttons';
 import ShipmentRoutesTable from '@/app/ui/routes/routes-table';
 import ShipmentInfoPanel from '@/app/ui/shipments/shipment-info';
+import ShipmentRoutesUnitsTable from '@/app/ui/units/routes-units-table';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -33,7 +34,7 @@ export default async function Page({ params, searchParams }: {
     const tabIndex = Number(searchParams?.tab) || 0;
     console.log('tab = ', tabIndex);
 
-    const [customers, organisations, sales, documentations, shipment, rates, routes] = await Promise.all([
+    const [customers, organisations, sales, documentations, shipment, rates, routes, units] = await Promise.all([
         fetchCustomers(),
         fetchOrganisations(),
         fetchSales(),
@@ -41,6 +42,7 @@ export default async function Page({ params, searchParams }: {
         fetchShipmentFullById(id),
         fetchRatesByShipmentId(id),
         fetchRoutesByShipmentId(id),
+        fetchUnitsByShipmentId(id),
     ]);
 
     if(!shipment) {
@@ -115,7 +117,10 @@ export default async function Page({ params, searchParams }: {
                     <ShipmentRoutesTable routes={routes} shipment_id={id}/>
                 </Suspense>
             </TabPanel>
-            <TabPanel>Units info</TabPanel>
+            <TabPanel>
+                {/* Units tab */}
+                <ShipmentRoutesUnitsTable routes={routes} units={units} shipment_id={id}/>
+            </TabPanel>
             <TabPanel>
                 {/* Rate Tab */}
                 <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">

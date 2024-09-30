@@ -110,3 +110,12 @@ export const RouteFormSchema = z.object({
 });
 
 export type RouteTypeSchema = z.infer<typeof RouteFormSchema>
+
+export const UnitFormSchema = z.object({
+    number: z.string()
+        .min(1, { message: 'Please enter number' }),
+    unit_type_id: z.string()
+        .min(1, { message: 'Please choose a type' }),
+});
+
+export type UnitTypeSchema = z.infer<typeof UnitFormSchema>
