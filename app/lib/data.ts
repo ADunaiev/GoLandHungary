@@ -31,6 +31,9 @@ import {
   ShipmentRouteUnitTypeFull,
   UnitField,
   UnitTypeField,
+  VehicleTypeFull,
+  VehicleTypeField,
+  DriverTypeFull,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
@@ -1254,7 +1257,7 @@ export async function fetchUnitsByShipmentId(
     v.transport_type_id,
     v.vehicle_type_id, 
     vt.name_eng as vehicle_type_name,
-    v.driver_id, 
+    sru.driver_id, 
     d.name_eng as driver_name, 
     d.phone as driver_phone,
     sru.shipment_id,
@@ -1271,7 +1274,7 @@ export async function fetchUnitsByShipmentId(
     LEFT JOIN vehicles_types as vt
     ON v.vehicle_type_id = vt.id
     LEFT JOIN drivers as d
-    ON v.driver_id = d.id
+    ON sru.driver_id = d.id
     WHERE sru.shipment_id = ${shipment_id}
     `;
 
@@ -1362,5 +1365,181 @@ export async function fetchUnitTypes() {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch all unit types.');
+  }
+}
+
+export async function fetchFilteredVehiclesByTransportType(
+  query: string,
+  currentPage: number,
+  transport_type_id: string,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const vehicles = await sql<VehicleTypeFull>`
+      SELECT 
+      v.id,
+      v.number,
+      v.transport_type_id,
+      tt.name_eng as transport_type_name,
+      v.vehicle_type_id,
+      vt.name_eng as vehicle_type_name
+      FROM public.vehicles as v
+      LEFT JOIN transport_types as tt ON v.transport_type_id = tt.id
+      LEFT JOIN vehicles_types as vt ON v.vehicle_type_id = vt.id
+      WHERE
+        (v.number ILIKE ${`%${query}%`} OR
+        tt.name_eng ILIKE ${`%${query}%`} OR 
+        vt.name_eng ILIKE ${`%${query}%`}) AND
+        v.transport_type_id = ${transport_type_id}
+      ORDER BY vt.name_eng ASC, v.number ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return vehicles.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered vehicles.');
+  }
+}
+
+export async function fetchVehiclesByTransportTypePages(
+  query: string, transport_type_id: string) {
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM public.vehicles as v
+    LEFT JOIN transport_types as tt ON v.transport_type_id = tt.id
+    LEFT JOIN vehicles_types as vt ON v.vehicle_type_id = vt.id
+    WHERE
+      (v.number ILIKE ${`%${query}%`} OR
+      tt.name_eng ILIKE ${`%${query}%`} OR 
+      vt.name_eng ILIKE ${`%${query}%`}) AND 
+      v.transport_type_id = ${transport_type_id}
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of vehicles.');
+  }
+}
+
+export async function fetchRouteTransportTypeIdByRouteId(id: string) {
+  try {
+    const data = await sql`
+    SELECT r.transport_type_id
+    FROM routes as r
+    LEFT JOIN cities AS c1 ON r.start_city_id = c1.id 
+    LEFT JOIN cities AS c2 ON r.end_city_id = c2.id 
+    WHERE r.id = ${id}
+    `;
+
+    return data.rows[0] !== null ? String(data.rows[0].transport_type_id) : '';
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch route tranport type id by route id.')
+  }
+}
+
+export async function fetchVehicleTypes() {
+  try {
+    const data = await sql<VehicleTypeField>`
+      SELECT
+        id,
+        name_eng
+      FROM vehicles_types
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all vehicle types.');
+  }
+}
+
+export async function fetchVehicleIdByNumberAndTypes(
+  number: string, 
+  vehicle_type_id: string, 
+  transport_type_id: string, 
+) {
+  try {
+    const data = await sql`
+    SELECT id FROM vehicles 
+    WHERE 
+      number = ${number} AND
+      vehicle_type_id = ${vehicle_type_id} AND
+      transport_type_id = ${transport_type_id}
+    `;
+
+    return data.rows[0] == null ? '' : String( data.rows[0].id);
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch vehicle id by number and types.')
+  }
+}
+
+export async function fetchFilteredDrivers(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const drivers = await sql<DriverTypeFull>`
+      SELECT 
+      d.id,
+      d.name_eng,
+      d.phone
+      FROM public.drivers as d
+      WHERE
+        d.name_eng ILIKE ${`%${query}%`} OR
+        d.phone ILIKE ${`%${query}%`}
+      ORDER BY d.name_eng ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return drivers.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered drivers.');
+  }
+}
+
+export async function fetchDriversPages(
+  query: string) {
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM public.drivers as d
+    WHERE
+      d.name_eng ILIKE ${`%${query}%`} OR
+      d.phone ILIKE ${`%${query}%`} 
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total pages number of drivers.');
+  }
+}
+
+export async function fetchDriverIdByNameAndPhone(
+  name_eng: string, 
+  phone: string, 
+) {
+  try {
+    const data = await sql`
+    SELECT id FROM drivers 
+    WHERE 
+      name_eng = ${name_eng} AND
+      phone = ${phone} 
+    `;
+
+    return data.rows[0] == null ? '' : String( data.rows[0].id);
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch driver id by name and phone.')
   }
 }

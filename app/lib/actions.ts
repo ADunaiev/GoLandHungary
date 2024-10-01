@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema } from './schemas/schema';
-import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, saveInvoiceRatesToDb } from './data';
+import { DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, saveInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 
@@ -781,4 +781,141 @@ export async function deleteUnitFromShipmentRoute(
             message: 'Database Error: Failed to Delete Unit from Shipment Route Units.',
         };
     }   
+}
+
+{/* Vehicles */}
+
+export async function createVehicle(shipment_id: string, route_id: string, unit_id: string, formData: VehicleTypeSchema) {
+    
+    const validatedFields = VehicleFormSchema.safeParse({
+        number: formData.number,
+        vehicle_type_id: formData.vehicle_type_id,
+        transport_type_id: formData.transport_type_id
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { number, vehicle_type_id, transport_type_id }
+     = validatedFields.data;
+
+    let vehicle_id = await fetchVehicleIdByNumberAndTypes(
+        number, vehicle_type_id, transport_type_id
+    );
+
+    if(vehicle_id === '') {  
+        try {
+            await sql`
+            INSERT INTO vehicles (number, vehicle_type_id, transport_type_id) VALUES
+            (${number}, ${vehicle_type_id}, ${transport_type_id})
+            `;
+
+        } catch (error) {
+            console.log(error);
+            return {
+                message: 'Database error: Failed to Create Vehicle from Shipment.'
+            };
+        }
+
+        revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/${unit_id}/add_vehicle`);
+        redirect(`/dashboard/shipments/${shipment_id}/edit/${route_id}/${unit_id}/add_vehicle`);
+
+    } else {
+        throw new Error('Vehicle already exists!')
+    }
+}
+
+export async function addVehicleToShipmentRouteUnit(
+    shipment_id: string, route_id: string, unit_id: string, vehicle_id: string) {
+
+    try {
+        await sql`
+            UPDATE shipment_route_units SET vehicle_id = ${vehicle_id}
+            WHERE 
+                shipment_id = ${shipment_id} AND 
+                route_id = ${route_id} AND 
+                unit_id = ${unit_id}
+            `;
+        
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Add Vehicle to from Shipment Route Units.',
+        };
+    }  
+    
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
+    
+}
+
+{/* Drivers */}
+
+export async function createDriver(shipment_id: string, route_id: string, unit_id: string, formData: DriverTypeSchema) {
+    
+    const validatedFields = DriverFormSchema.safeParse({
+        name_eng: formData.name_eng,
+        phone: formData.phone,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { name_eng, phone }
+     = validatedFields.data;
+
+    let driver_id = await fetchDriverIdByNameAndPhone(
+        name_eng, phone
+    );
+
+    if(driver_id === '') {  
+        try {
+            await sql`
+            INSERT INTO drivers (name_eng, phone) VALUES
+            (${name_eng}, ${phone})
+            `;
+
+        } catch (error) {
+            console.log(error);
+            return {
+                message: 'Database error: Failed to Create Driver from Shipment.'
+            };
+        }
+
+        revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/${unit_id}/add_driver`);
+        redirect(`/dashboard/shipments/${shipment_id}/edit/${route_id}/${unit_id}/add_driver`);
+
+    } else {
+        throw new Error('Driver already exists!')
+    }
+}
+
+export async function addDriverToShipmentRouteUnit(
+    shipment_id: string, route_id: string, unit_id: string, driver_id: string) {
+
+    try {
+        await sql`
+            UPDATE shipment_route_units SET driver_id = ${driver_id}
+            WHERE 
+                shipment_id = ${shipment_id} AND 
+                route_id = ${route_id} AND 
+                unit_id = ${unit_id}
+            `;
+        
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Add Driver to from Shipment Route Units.',
+        };
+    }  
+    
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
+    
 }

@@ -119,3 +119,23 @@ export const UnitFormSchema = z.object({
 });
 
 export type UnitTypeSchema = z.infer<typeof UnitFormSchema>
+
+export const VehicleFormSchema = z.object({
+    number: z.string()
+        .min(1, { message: 'Please enter number' }),
+    vehicle_type_id: z.string()
+        .min(1, { message: 'Please choose a type' }),
+    transport_type_id: z.string()
+        .min(1, { message: 'Please choose a type' }),
+});
+
+export type VehicleTypeSchema = z.infer<typeof VehicleFormSchema>
+
+export const DriverFormSchema = z.object({
+    name_eng: z.string()
+        .min(1, { message: 'Please enter name' }),
+    phone: z.string()
+        .min(1, { message: 'Please enter phone' }),
+});
+
+export type DriverTypeSchema = z.infer<typeof DriverFormSchema>

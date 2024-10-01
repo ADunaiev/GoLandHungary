@@ -295,6 +295,11 @@ export type UnitTypeField = {
   name_eng: string,
 }
 
+export type VehicleTypeField = {
+  id: string,
+  name_eng: string,
+}
+
 export type ShipmentRouteUnitTypeFull = {
   id: string,
   number: string,
@@ -312,6 +317,25 @@ export type ShipmentRouteUnitTypeFull = {
   route_id: string,
   start_date: string,
   end_date: string,
+}
+
+export type VehicleTypeFull = {
+  id: string,
+  number: string,
+  transport_type_id: string,
+  transport_type_name: string,
+  vehicle_type_id: string,
+  vehicle_type_name: string,
+  /* delete if everything is stable
+  driver_id: string,
+  driver_name: string,
+  driver_phone: string, */
+}
+
+export type DriverTypeFull = {
+  id: string,
+  name_eng: string,
+  phone: string,
 }
 
 

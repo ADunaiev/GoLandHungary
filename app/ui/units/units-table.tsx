@@ -1,6 +1,9 @@
 import { RouteFullType, ShipmentRouteUnitTypeFull } from "@/app/lib/definitions";
 import Image from "next/image";
 import { DeleteUnitFromShipmentRoute } from "@/app/ui/units/buttons";
+import { AddVehicle } from "../vehicles/buttons";
+import { init } from "next/dist/compiled/webpack/webpack";
+import { AddDriver } from "../drivers/buttons";
 
 export default async function RouteUnitsTable({ units, shipment_id, route_id } : {
     units: ShipmentRouteUnitTypeFull[],
@@ -28,47 +31,73 @@ export default async function RouteUnitsTable({ units, shipment_id, route_id } :
                       <div
                       key={unit.id + 'i'}
                       className="mb-2 w-full rounded-md bg-white p-4"
-                    >
-                      <div className="flex items-center justify-between border-b pb-4">
-                          <div>
-                              <div className="mb-2 flex items-center">
-                                <p>{unit.number}</p>
-                              </div>
-                              <p className="text-sm text-gray-500">{unit.unit_type_name}</p>
+                      >
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <div>
+                                <div className="mb-2 flex items-center">
+                                  <p>{unit.number}</p>
+                                </div>
+                                <p className="text-sm text-gray-500">{unit.unit_type_name}</p>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <DeleteUnitFromShipmentRoute shipment_id={shipment_id} route_id={route_id} unit_id={unit.id}/>
                           </div>
-                          <div className="flex justify-end gap-2">
-                              <DeleteUnitFromShipmentRoute shipment_id={shipment_id} route_id={route_id} unit_id={unit.id}/>
+    
                         </div>
-  
-                      </div>
-                      <div className="flex mt-2 items-center justify-between border-b pb-4">
-                          <div>
-                              <div className="mb-2 flex items-center">
-                                <p>{unit.vehicle_number}</p>
-                              </div>
-                              <p className="text-sm text-gray-500">{unit.vehicle_type_name}</p>
-                          </div>
-                          <div className="flex-col justify-end gap-2 text-sm">
-                              <div className="">
+                        <div className="flex mt-2 items-center justify-between border-b pb-4">
+                            <div>
+                                <div className="mb-2 flex items-center">
+                                  {
+                                    unit.vehicle_number !== null ?
+                                    <p>{unit.vehicle_number}</p> :
+                                    <AddVehicle shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} />
+                                  }
+                                </div>
+                                <p className="text-sm text-gray-500">{unit.vehicle_type_name}</p>
+                            </div>
+                            <div className="flex-col justify-end gap-2 text-sm">
+                                <div className="">
+                                  <p>
+                                    {
+                                      getCorrectDate(unit.start_date) === '1970-01-01' ?
+                                      '' :
+                                      getCorrectDate(unit.start_date)
+                                    }
+                                  </p>
+                                </div>
                                 <p>
                                   {
-                                    getCorrectDate(unit.start_date) === '1970-01-01' ?
+                                    getCorrectDate(unit.end_date) === '1970-01-01' ?
                                     '' :
-                                    getCorrectDate(unit.start_date)
+                                    getCorrectDate(unit.end_date)
                                   }
                                 </p>
-                              </div>
-                              <p>
-                                {
-                                  getCorrectDate(unit.end_date) === '1970-01-01' ?
-                                  '' :
-                                  getCorrectDate(unit.end_date)
-                                }
-                              </p>
+                            </div>
+    
                         </div>
-  
+                        {
+                          unit.vehicle_type_name !== 'Truck' ?
+                          '' :
+                          (
+                            unit.driver_name === null ?
+                            <div className="flex mt-2 items-center justify-between border-b pb-4">
+                              <div>
+                                <div className="mb-2 flex items-center">
+                                  <AddDriver shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} /> 
+                                </div>
+                              </div>
+                            </div> :
+                            <div className="flex mt-2 items-center justify-between border-b pb-4">
+                              <div>
+                                <div className="mb-2 flex items-center">
+                                  <p>{unit.driver_name}</p>
+                                  <p className="text-sm text-gray-500">{unit.driver_phone}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )                             
+                        }
                       </div>
-                    </div>
                     );
                   }
 
@@ -88,9 +117,31 @@ export default async function RouteUnitsTable({ units, shipment_id, route_id } :
                           <p className="text-xs">{unit.unit_type_name}</p>
                         </td>
                         <td className="whitespace-nowrap px-3 py-3">
-                          {unit.vehicle_number}
+                          {
+                            unit.vehicle_number !== null ?
+                            <p>{unit.vehicle_number}</p> :
+                            <div className="w-24 items-center">
+                              <AddVehicle shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} />
+                            </div>
+                          }
                           <p className="text-xs">{unit.vehicle_type_name}</p>
                         </td>
+                        {
+                            unit.vehicle_type_name !== 'Truck' ?
+                            '' :
+                            (
+                            unit.driver_name === null ?
+                            <td className="whitespace-nowrap px-3 py-3">
+                              <div className="w-24 items-center">
+                                <AddDriver shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} />
+                              </div> 
+                            </td>:
+                            <td className="whitespace-nowrap px-3 py-3">
+                              {unit.driver_name}
+                              <p className="text-xs">{unit.driver_phone}</p>
+                            </td>
+                            )
+                        }
                         <td className="whitespace-nowrap px-3 py-3">
                           {
                             getCorrectDate(unit.start_date) === '1970-01-01' ?

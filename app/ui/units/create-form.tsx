@@ -69,7 +69,7 @@ export default function CreateUnitForm({
                         />
                         <ChevronRightIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
                     </div>
-                    <div id="unit-type-error" aria-live="polite" aria-atomic="true">
+                    <div id="number-error" aria-live="polite" aria-atomic="true">
                         { 
                         errors.number?.message && 
                         (
