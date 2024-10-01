@@ -685,11 +685,12 @@ export async function createRouteFromShipment(shipment_id: string, formData: Rou
 
 }
 
-export async function deleteRouteFromShipment(id: string) {
+export async function deleteRouteFromShipment(shipment_id: string, route_id: string) {
 
     try {
-        await sql`DELETE FROM shipment_routes WHERE route_id = ${id}`;
-        revalidatePath(`/dashboard/shipments/${id}/edit?tab=1`);
+        await sql`DELETE FROM shipment_route_units WHERE shipment_id = ${shipment_id} AND route_id = ${route_id}`;
+        await sql`DELETE FROM shipment_routes WHERE shipment_id = ${shipment_id} AND route_id = ${route_id}`;
+        revalidatePath(`/dashboard/shipments/${shipment_id}}/edit?tab=1`);
         return { message: 'Route deleted from shipment' };
     } catch (error) {
         return {

@@ -31,7 +31,7 @@ export default async function ShipmentRoutesTable({ routes, shipment_id } : {
                             <p className="text-sm text-gray-500">{route.transport_type_name}</p>
                         </div>
                         <div className="flex justify-end gap-2">
-                            <DeleteRouteFromShipment id={route.id} />
+                            <DeleteRouteFromShipment shipment_id={shipment_id} route_id={route.id} />
                       </div>
 
                     </div>
@@ -85,7 +85,7 @@ export default async function ShipmentRoutesTable({ routes, shipment_id } : {
                       </td>
                       <td className="whitespace-nowrap py-3 pl-6 pr-3">
                         <div className="flex justify-end gap-3">
-                          <DeleteRouteFromShipment id={route.id} />
+                          <DeleteRouteFromShipment shipment_id={shipment_id} route_id={route.id} />
                         </div>
                       </td>
                     </tr>

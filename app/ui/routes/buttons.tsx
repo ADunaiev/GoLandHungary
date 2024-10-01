@@ -16,8 +16,8 @@ export function CreateRouteFromShipment({shipment_id}:
   )
 }
 
-export function DeleteRouteFromShipment ({ id }: { id: string }) {
-  const deleteRouteFromShipmentWithId = deleteRouteFromShipment.bind(null, id);
+export function DeleteRouteFromShipment ({ shipment_id, route_id }: { shipment_id: string, route_id: string }) {
+  const deleteRouteFromShipmentWithId = deleteRouteFromShipment.bind(null, shipment_id, route_id);
 
   return (
     <form action={deleteRouteFromShipmentWithId}>
