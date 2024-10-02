@@ -13,6 +13,7 @@ import Link from "next/link"
 import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
+import { CreateCityFromShipment } from "../cities/buttons"
 
 export default function CreateRouteFormFromShipments({
     cities,
@@ -58,8 +59,14 @@ export default function CreateRouteFormFromShipments({
                 console.log(e);
             })
         }}>
-            <div className="rounded-md bg-gray-50 p-4 md:p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex">
+                <CreateCityFromShipment shipment_id={shipment.id} />
+            </div>
+            
 
+            <div className="rounded-md bg-gray-50 p-4 mt-4 md:p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
+            
                 {/* Start city */}
                 <div className="mb-4">
                     <label htmlFor="start-city" className="mb-2 block text-sm font-medium">
@@ -84,7 +91,7 @@ export default function CreateRouteFormFromShipments({
                                 </option>
                             ))}
                         </select>
-                        <BuildingOfficeIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+                        <BuildingOfficeIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />                    
                     </div>
                     <div id="start-city-error" aria-live="polite" aria-atomic="true">
                         { 

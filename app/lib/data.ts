@@ -34,6 +34,7 @@ import {
   VehicleTypeFull,
   VehicleTypeField,
   DriverTypeFull,
+  CountryField,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { RateType } from './schemas/schema';
@@ -1541,5 +1542,41 @@ export async function fetchDriverIdByNameAndPhone(
   } catch(error) {
     console.log('Database error: ', error)
     throw new Error('Failed to fetch driver id by name and phone.')
+  }
+}
+
+export async function fetchCountries() {
+  try {
+    const data = await sql<CountryField>`
+      SELECT
+        id,
+        name_eng
+      FROM countries
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all countries.');
+  }
+}
+
+export async function fetchCityIdByNameAndCountry(
+  name_eng: string, 
+  country_id: string, 
+) {
+  try {
+    const data = await sql`
+    SELECT id FROM cities 
+    WHERE 
+      name_eng = ${name_eng} AND
+      country_id = ${country_id} 
+    `;
+
+    return data.rows[0] == null ? '' : String( data.rows[0].id);
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch city id by name and country.')
   }
 }

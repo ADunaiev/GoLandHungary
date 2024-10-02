@@ -6,10 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, saveInvoiceRatesToDb } from './data';
+import { CityFormSchema, CityTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, saveInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
+import { toast } from 'sonner'
 
 const FormSchema = z.object({
     id: z.string(),
@@ -919,4 +920,49 @@ export async function addDriverToShipmentRouteUnit(
     revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
     redirect(`/dashboard/shipments/${shipment_id}/edit?tab=2`);
     
+}
+
+{/* Cities */}
+
+export async function createCity(shipment_id: string, formData: CityTypeSchema) {
+    
+    const validatedFields = CityFormSchema.safeParse({
+        name_eng: formData.name_eng,
+        country_id: formData.country_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { name_eng, country_id }
+     = validatedFields.data;
+
+    let city_id = await fetchCityIdByNameAndCountry(
+        name_eng, country_id
+    );
+
+    if(city_id === '') {  
+        try {
+            await sql`
+            INSERT INTO cities (name_eng, country_id) VALUES
+            (${name_eng}, ${country_id})
+            `;
+
+        } catch (error) {
+            console.log(error);
+            return {
+                message: 'Database error: Failed to Create City from Shipment.'
+            };
+        }
+
+    } else {
+        throw new Error('City already exists!')
+    }
+
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit/create_route`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit/create_route`);
 }

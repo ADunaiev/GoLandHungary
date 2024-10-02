@@ -14,6 +14,7 @@ import Link from "next/link"
 import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
+import { toast } from 'sonner'
 
 export default function CreateVehicleForm({
     transport_types,
@@ -44,8 +45,9 @@ export default function CreateVehicleForm({
     const onSubmit = async (data:VehicleTypeSchema) => {
         try {
             await createVehicleFromShipment(data);
+            toast.success('Vehicle is created!')
         } catch(e) {
-            console.log(e);
+            toast.warning('Vehicle is already exists!')
         }
     }
 

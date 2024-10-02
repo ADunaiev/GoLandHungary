@@ -139,3 +139,13 @@ export const DriverFormSchema = z.object({
 });
 
 export type DriverTypeSchema = z.infer<typeof DriverFormSchema>
+
+export const CityFormSchema = z.object({
+    name_eng: z.string()
+        .min(1, { message: 'Please enter name' }),
+    country_id: z.string()
+        .min(1, { message: 'Please enter country' }),
+});
+
+export type CityTypeSchema = z.infer<typeof CityFormSchema>
+

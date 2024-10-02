@@ -66,7 +66,7 @@ export default async function ShipmentRoutesUnitsTable(
                             </div>     
                         </div>
 
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 mr-5">
                           <AddUnit shipment_id={shipment_id} route_id={route.id} /> 
                         </div>
                     </div>

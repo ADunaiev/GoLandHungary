@@ -191,6 +191,11 @@ export type ServiceField = {
   name_eng: string;
 }
 
+export type CountryField = {
+  id: string;
+  name_eng: string;
+}
+
 export type VatField = {
   id: string;
   name_eng: string;
