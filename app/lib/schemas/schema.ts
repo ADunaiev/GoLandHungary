@@ -113,7 +113,8 @@ export type RouteTypeSchema = z.infer<typeof RouteFormSchema>
 
 export const UnitFormSchema = z.object({
     number: z.string()
-        .min(1, { message: 'Please enter number' }),
+        .min(1, { message: 'Please enter number' })
+        .regex(new RegExp('^[a-zA-Z0-9- ]*$'), 'Please use only latin letters or numbers'),
     unit_type_id: z.string()
         .min(1, { message: 'Please choose a type' }),
 });
@@ -122,7 +123,8 @@ export type UnitTypeSchema = z.infer<typeof UnitFormSchema>
 
 export const VehicleFormSchema = z.object({
     number: z.string()
-        .min(1, { message: 'Please enter number' }),
+        .min(1, { message: 'Please enter number' })
+        .regex(new RegExp('^[a-zA-Z0-9- ]*$'), 'Please use only latin letters or numbers'),
     vehicle_type_id: z.string()
         .min(1, { message: 'Please choose a type' }),
     transport_type_id: z.string()
@@ -133,16 +135,19 @@ export type VehicleTypeSchema = z.infer<typeof VehicleFormSchema>
 
 export const DriverFormSchema = z.object({
     name_eng: z.string()
-        .min(1, { message: 'Please enter name' }),
+        .min(1, { message: 'Please enter name' })
+        .regex(new RegExp('^[a-zA-Z]*$'), 'Please use only latin letters'),
     phone: z.string()
-        .min(1, { message: 'Please enter phone' }),
+        .min(1, { message: 'Please enter phone' })
+        .regex(new RegExp('[0-9- +()]'), 'Wrong phone format'),
 });
 
 export type DriverTypeSchema = z.infer<typeof DriverFormSchema>
 
 export const CityFormSchema = z.object({
     name_eng: z.string()
-        .min(1, { message: 'Please enter name' }),
+        .min(1, { message: 'Please enter name' })
+        .regex(new RegExp('^[a-zA-Z0-9- ]*$'), 'Please use only latin letters'),
     country_id: z.string()
         .min(1, { message: 'Please enter country' }),
 });

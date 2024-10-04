@@ -1,6 +1,6 @@
-import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { deleteInvoice, deleteInvoiceRate, deleteInvoiceRateEditInvoice } from '@/app/lib/actions';
+import { deleteInvoice, deleteInvoiceRate, deleteInvoiceRateEditInvoice, removeRateFromShipmentInvoice, restoreRatesInShipmentInvoice } from '@/app/lib/actions';
 
 
 export function CreateRate({invoice_number}: 
@@ -89,4 +89,36 @@ export function DeleteRateEditInvoice ({ id, rateId }: { id: string, rateId: str
       </button>
     </form>
   );
+}
+
+export function RemoveRateFromShipmentInvoice({ shipment_id, rate_id } :
+  { shipment_id: string, rate_id: string }) {
+
+    const removeRateFromShipmentInvoiceWithId = removeRateFromShipmentInvoice.bind(null, shipment_id, rate_id);
+
+    return (
+      <form action={removeRateFromShipmentInvoiceWithId}>
+        <button className="rounded-md border p-2 hover:bg-gray-100">
+          <span className="sr-only">Delete</span>
+          <TrashIcon className="w-5" />
+        </button>
+      </form>
+    );
+
+}
+
+export function RestoreRatesInShipmentInvoice({ shipment_id } :
+  { shipment_id: string }) {
+
+    const restoreRatesInShipmentInvoiceWithId = restoreRatesInShipmentInvoice.bind(null, shipment_id);
+
+    return (
+      <form action={restoreRatesInShipmentInvoiceWithId}>
+        <button className="rounded-md border p-2 justify-end hover:bg-gray-100">
+          <span className="sr-only">Delete</span>
+          <ArrowPathIcon className="w-5" />
+        </button>
+      </form>
+    );
+
 }

@@ -1,6 +1,6 @@
 import { RouteFullType } from "@/app/lib/definitions";
 import Image from "next/image";
-import { DeleteRouteFromShipment } from "./buttons";
+import { DeleteRouteFromShipment, UpdateRouteFromShipment } from "./buttons";
 
 export default async function ShipmentRoutesTable({ routes, shipment_id } : {
     routes: RouteFullType[],
@@ -85,6 +85,7 @@ export default async function ShipmentRoutesTable({ routes, shipment_id } : {
                       </td>
                       <td className="whitespace-nowrap py-3 pl-6 pr-3">
                         <div className="flex justify-end gap-3">
+                          <UpdateRouteFromShipment shipment_id={shipment_id} route_id={route.id} />
                           <DeleteRouteFromShipment shipment_id={shipment_id} route_id={route.id} />
                         </div>
                       </td>

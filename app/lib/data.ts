@@ -37,7 +37,7 @@ import {
   CountryField,
 } from './definitions';
 import { formatCurrency } from './utils';
-import { RateType } from './schemas/schema';
+import { InvoiceType, RateType } from './schemas/schema';
 import { getRandomValues } from 'crypto';
 import { cache } from 'react';
 
@@ -632,6 +632,41 @@ export async function saveInvoiceRatesToDb(
   }
 }
 
+export async function saveShipmentRatesToInvoice(
+  invoice_number: string, 
+  date: Date,
+  organisation_id: string,
+  invoice_currency_id: string,
+  shipment_id: string,
+) {
+  try {
+    const invoice = await fetchInvoiceByNumber(invoice_number);
+    const rates = await fetchShipmentRatesForInvoice(shipment_id);
+    const currencies = await fetchCurrenciesRatesByDate(date, organisation_id);
+    const vat_rates = await fetchVatRates();
+    const invoice_currency_rate = currencies.find(c => c.currency_id == invoice_currency_id)?.rate || 1;
+
+    rates.map(async (rate) => {
+      const rate_currency = currencies.find(c => c.currency_id == rate.currency_id)?.rate || 1;
+      const rate_vat_rate = vat_rates.find(vr => vr.id == rate.vat_rate_id)?.rate || 0;
+      const net_unit = Math.round(rate.rate * rate_currency / invoice_currency_rate);
+      const net_line = net_unit * rate.quantity;
+      const vat_value = Math.round(net_line * rate_vat_rate / 10000);
+      const gross_value = net_line + vat_value;
+
+      await sql`
+      INSERT INTO invoice_rates (invoice_id, rate_id, currency_rate, net_unit, net_line, vat_value, gross_value) VALUES
+      (${invoice.id}, ${rate.id}, ${rate_currency}, ${net_unit}, ${net_line}, ${vat_value}, ${gross_value})
+      `;
+
+    });
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to save invoice rates to database.');
+  }
+}
+
 export async function deleteInvoiceRatesFromDb(invoice_id: string) {
   try {
     await sql`DELETE FROM invoice_rates WHERE invoice_id = ${invoice_id}`;
@@ -1134,6 +1169,50 @@ export async function fetchRatesByShipmentId(id: string) {
   }
 }
 
+export async function fetchShipmentRatesForInvoice(shipment_id: string) {
+  try {
+    const data = await sql<RateTable>`
+    SELECT 
+    r.id, 
+    s.id as shipment_id, 
+    s.number as shipment_number,
+    ro.id as route_id, 
+    c1.name_eng as start_point_name,
+    c2.name_eng as end_point_name, 
+    se.id as service_id, 
+    se.name_eng as service_name, 
+    r.rate as rate,
+    cu.id as currency_id, 
+    cu.short_name as currency_name,
+    vr.id as vat_rate_id, 
+    vr.rate as vat_rate_rate,
+    vr.name_eng as vat_rate_name, 
+    r.quantity
+    FROM rates as r
+    LEFT JOIN shipments as s ON r.shipment_id = s.id
+    LEFT JOIN routes as ro ON r.route_id = ro.id
+    LEFT JOIN cities as c1 ON ro.start_city_id = c1.id
+    LEFT JOIN cities as c2 ON ro.end_city_id = c2.id
+    LEFT JOIN services as se ON r.service_id = se.id
+    LEFT JOIN currencies as cu ON r.currency_id = cu.id
+    LEFT JOIN vat_rates as vr ON r.vat_rate_id = vr.id
+    where r.shipment_id = ${shipment_id} and
+    r.id NOT IN 
+    (
+    select ir.rate_id 
+    from invoice_rates as ir
+    left join rates as r on ir.rate_id = r.id
+    where r.shipment_id = ${shipment_id}
+    ) AND r.is_invoice IS NOT false
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch shipment rates for invoice.');
+  }
+}
+
 export async function fetchShipmentById(id: string) {
   try {
     const data = await sql<ShipmentField>`
@@ -1149,8 +1228,34 @@ export async function fetchShipmentById(id: string) {
   }
 }
 
+export async function fetchRouteById(id: string) {
+  try {
+    const data = await sql<RouteFullType>`
+    select r.id, 
+    r.start_city_id, c1.name_eng as start_city_name,
+    r.end_city_id, c2.name_eng as end_city_name,
+    r.transport_type_id, tt.name_eng as transport_type_name,
+    tt.image_url
+    from routes as r
+    left join cities as c1
+    on r.start_city_id = c1.id
+    left join cities as c2
+    on r.end_city_id = c2.id
+    left join transport_types as tt
+    on r.transport_type_id = tt.id
+    WHERE r.id = ${id}
+    `;
+
+    return data.rows[0];
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch route by id.')
+  }
+}
+
 export async function fetchRoutesByShipmentId(id: string) {
   try {
+    
     const data = await sql<RouteFullType>`
     select r.id, 
     r.start_city_id, c1.name_eng as start_city_name,
@@ -1173,6 +1278,28 @@ export async function fetchRoutesByShipmentId(id: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch routes by shipment id.');
+  }
+}
+
+export async function fetchRoutesFieldsByShipmentId(id: string) {
+  try {
+    const data = await sql<RouteField>`
+    select r.id, 
+    c1.name_eng || ' - ' || c2.name_eng as start_end
+    from routes as r
+    left join cities as c1
+    on r.start_city_id = c1.id
+    left join cities as c2
+    on r.end_city_id = c2.id
+    left join shipment_routes as sr
+    on r.id = sr.route_id
+    WHERE sr.shipment_id = ${id}
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch routes fields by shipment id.');
   }
 }
 
@@ -1578,5 +1705,53 @@ export async function fetchCityIdByNameAndCountry(
   } catch(error) {
     console.log('Database error: ', error)
     throw new Error('Failed to fetch city id by name and country.')
+  }
+}
+
+export async function fetchInvoicesByShipmentId(id: string) {
+  try {
+    const data = await sql<InvoicesTable>`
+    SELECT
+      i.id,
+      i.amount,
+      i.date,
+      i.number,
+      i.status,
+      cust.name,
+      cust.email,
+      cust.image_url,
+      cur.short_name
+    FROM invoices as i
+    LEFT JOIN customers as cust ON i.customer_id = cust.id
+    LEFT JOIN currencies as cur ON i.currency_id = cur.id
+    LEFT JOIN invoice_rates as ir ON i.id = ir.invoice_id
+    LEFT JOIN rates as r ON ir.rate_id = r.id
+    WHERE r.shipment_id = ${id}
+    GROUP BY i.id, cust.name, cust.email, cust.image_url, cur.short_name
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch invoices by shipment id.');
+  }
+}
+
+export async function setInvoiceNumberToShipmentRatesWithoutInvoices(invoice_number: string, shipment_id: string) {
+  try {
+    await sql`
+    UPDATE rates 
+    SET invoice_number = ${invoice_number}
+    WHERE id IN 
+    (SELECT r.id
+    FROM public.rates as r
+    left join shipments as sh on r.shipment_id = sh.id
+    left join invoice_rates as ir on r.id = ir.rate_id
+    WHERE sh.id = ${shipment_id} AND ir.rate_id IS NULL)
+    `;
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to set Invoice Number to Shipment Rates without Invoices.')
   }
 }

@@ -1,10 +1,10 @@
 'use client'
 
-import { CityField, ShipmentField, TransportTypeField } from "@/app/lib/definitions"
+import { CityField, RouteFullType, ShipmentField, TransportTypeField } from "@/app/lib/definitions"
 import { RouteFormSchema, RouteTypeSchema } from "@/app/lib/schemas/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { createRouteFromShipment } from "@/app/lib/actions"
+import { createRouteFromShipment, updateRouteFromShipment } from "@/app/lib/actions"
 import { 
     TruckIcon, 
     BuildingOfficeIcon
@@ -15,16 +15,18 @@ import { useState } from 'react'
 import React from "react"
 import { CreateCityFromShipment } from "../cities/buttons"
 
-export default function CreateRouteFormFromShipments({
+export default function EditRouteFormFromShipments({
     cities,
     transport_types,
-    shipment,
+    shipment_id,
+    route,
 } : {
     cities: CityField[],
     transport_types: TransportTypeField[],
-    shipment: ShipmentField,
+    shipment_id: string,
+    route: RouteFullType,
 }) {
-    const createRouteWithShipmentId = createRouteFromShipment.bind(null, shipment.id);
+    const editRouteWithShipmentId = updateRouteFromShipment.bind(null, shipment_id, route.id);
 
     const [data, setData] = useState<RouteTypeSchema>();
     const {
@@ -47,7 +49,7 @@ export default function CreateRouteFormFromShipments({
 
     const onSubmit = async (data:RouteTypeSchema) => {
         try {
-            await createRouteWithShipmentId(data);
+            await editRouteWithShipmentId(data);
         } catch(e) {
             console.log(e);
         }
@@ -60,7 +62,7 @@ export default function CreateRouteFormFromShipments({
             })
         }}>
             <div className="flex">
-                <CreateCityFromShipment shipment_id={shipment.id} />
+                <CreateCityFromShipment shipment_id={shipment_id} />
             </div>
             
 
@@ -77,7 +79,7 @@ export default function CreateRouteFormFromShipments({
                             id="start-city"
                             {...register('start_city_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={route.start_city_id}
                             aria-describedby="start-city-error"
                             >
                             <option key="start-city" value="" disabled>
@@ -115,7 +117,7 @@ export default function CreateRouteFormFromShipments({
                             id="end-city"
                             {...register('end_city_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={route.end_city_id}
                             aria-describedby="end-city-error"
                             >
                             <option key="end-city" value="" disabled>
@@ -153,7 +155,7 @@ export default function CreateRouteFormFromShipments({
                             id="transport-type"
                             {...register('transport_type_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={route.transport_type_id}
                             aria-describedby="transport-type-error"
                             >
                             <option key="transport-type" value="" disabled>
@@ -185,12 +187,12 @@ export default function CreateRouteFormFromShipments({
 
             <div className="mt-6 flex justify-end gap-4">
                 <Link
-                    href={`/dashboard/shipments/${shipment.id}/edit?tab=1`}
+                    href={`/dashboard/shipments/${shipment_id}/edit?tab=1`}
                     className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
                     >
                     Cancel
                 </Link>
-                <Button type="submit">Create Route</Button>
+                <Button type="submit">Edit Route</Button>
             </div>
         </form>
     );

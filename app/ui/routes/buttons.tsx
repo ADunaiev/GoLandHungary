@@ -16,6 +16,18 @@ export function CreateRouteFromShipment({shipment_id}:
   )
 }
 
+export function UpdateRouteFromShipment({ shipment_id, route_id }:
+  { shipment_id: string, route_id: string }) {
+  return (
+    <Link
+      href={`/dashboard/shipments/${shipment_id}/edit/${route_id}/edit_route`}
+      className="rounded-md border p-2 hover:bg-gray-100"
+    >
+      <PencilIcon className="w-5" />
+    </Link>
+  );
+}
+
 export function DeleteRouteFromShipment ({ shipment_id, route_id }: { shipment_id: string, route_id: string }) {
   const deleteRouteFromShipmentWithId = deleteRouteFromShipment.bind(null, shipment_id, route_id);
 

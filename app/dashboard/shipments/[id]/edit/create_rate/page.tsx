@@ -1,4 +1,4 @@
-import { fetchCurrencies, fetchRoutes, fetchServices, fetchShipmentById, fetchShipments, fetchVatRates } from '@/app/lib/data';
+import { fetchCurrencies, fetchRoutes, fetchRoutesByShipmentId, fetchRoutesFieldsByShipmentId, fetchServices, fetchShipmentById, fetchShipments, fetchVatRates } from '@/app/lib/data';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import Form from '@/app/ui/rates/create-form'
 import CreateRateFormFromShipments from '@/app/ui/rates/create-form-from-shipments';
@@ -13,7 +13,7 @@ export default async function Page({ params }:{ params: { id: string } }) {
     fetchServices(),
     fetchCurrencies(),
     fetchVatRates(),
-    fetchRoutes(),
+    fetchRoutesFieldsByShipmentId(shipment_id),
     fetchShipmentById(shipment_id),
   ]);
 

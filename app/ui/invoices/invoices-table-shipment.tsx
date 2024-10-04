@@ -1,19 +1,21 @@
 import Image from 'next/image';
-import { UpdateInvoice, DeleteInvoice, PrintInvoice } from '@/app/ui/invoices/buttons';
+import { UpdateInvoice, DeleteInvoice, PrintInvoice, DeleteInvoiceFromShipment, PrintInvoiceFromShipment, UpdateInvoiceFromShipment } from '@/app/ui/invoices/buttons';
 import InvoiceStatus from '@/app/ui/invoices/status';
 import { formatDateToLocal, formatCurrency } from '@/app/lib/utils';
 import { fetchFilteredInvoices } from '@/app/lib/data';
 import { InvoicesTable } from '@/app/lib/definitions';
 
 
-export default async function InvoicesTableData({
+export default async function InvoicesTableShipment({
   query,
   currentPage,
   invoices,
+  shipment_id
 }: {
   query: string;
   currentPage: number;
-  invoices: InvoicesTable[]
+  invoices: InvoicesTable[],
+  shipment_id: string,
 }) {
 
   return (
@@ -53,9 +55,9 @@ export default async function InvoicesTableData({
                     <p>{formatDateToLocal(invoice.date)}</p>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <UpdateInvoice id={invoice.id} />
-                    <DeleteInvoice id={invoice.id} />
-                    <PrintInvoice id={invoice.id} />
+                    <UpdateInvoiceFromShipment shipment_id={shipment_id} invoice_id={invoice.id} />
+                    <DeleteInvoiceFromShipment id={invoice.id} />
+                    <PrintInvoiceFromShipment id={shipment_id} invoice_id={invoice.id} />
                   </div>
                 </div>
               </div>
@@ -116,9 +118,9 @@ export default async function InvoicesTableData({
                   </td>
                   <td className="whitespace-nowrap py-3 pl-6 pr-3">
                     <div className="flex justify-end gap-3">
-                      <UpdateInvoice id={invoice.id} />
-                      <DeleteInvoice id={invoice.id} />
-                      <PrintInvoice id={invoice.id} />
+                      <UpdateInvoiceFromShipment shipment_id={shipment_id} invoice_id={invoice.id} />
+                      <DeleteInvoiceFromShipment id={invoice.id} />
+                      <PrintInvoiceFromShipment id={shipment_id}  invoice_id={invoice.id} />
                     </div>
                   </td>
                 </tr>
