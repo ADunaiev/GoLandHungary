@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, saveInvoiceRatesToDb } from './data';
+import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -169,7 +169,7 @@ export async function createInvoiceFromShipment(shipment_id: string, formData: I
     
     const invoice = await fetchInvoiceByNumber(number);
 
-    //await saveInvoiceRatesToDb(number, date, organisation_id, currency_id);
+    await saveShipmentInvoiceRatesToDb(invoice, date, organisation_id, currency_id, shipment_id);
     
     const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
     const currencies = await fetchCurrenciesRatesByDate(
@@ -218,6 +218,8 @@ export async function createInvoiceFromShipment(shipment_id: string, formData: I
             message: 'Database Error: Failed to Create Invoice.'
         };
     }
+
+    await clearIsInvoiceMarkInShipmentRates(shipment_id);
 
     revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=4`);
     redirect(`/dashboard/shipments/${shipment_id}/edit?tab=4`);

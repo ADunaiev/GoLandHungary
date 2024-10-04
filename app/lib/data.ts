@@ -459,7 +459,8 @@ export async function fetchInvoiceRatesByInvoiceNumber(invoice_number: string) {
     ON r.vat_rate_id = vr.id
     LEFT JOIN invoice_rates as ir
     ON r.id = ir.rate_id
-    WHERE r.invoice_number = ${invoice_number}
+    LEFT JOIN invoices as i ON ir.invoice_id = i.id
+    WHERE i.number = ${invoice_number}
     `;
 
     return data.rows;
@@ -632,6 +633,41 @@ export async function saveInvoiceRatesToDb(
   }
 }
 
+export async function saveShipmentInvoiceRatesToDb(
+  invoice: InvoiceTypeFull, 
+  date: Date,
+  organisation_id: string,
+  invoice_currency_id: string,
+  shipment_id: string,
+) {
+  try {
+    const rates = await fetchShipmentRatesForInvoice(shipment_id);
+    const currencies = await fetchCurrenciesRatesByDate(date, organisation_id);
+    const vat_rates = await fetchVatRates();
+    const invoice_currency_rate = currencies.find(c => c.currency_id == invoice_currency_id)?.rate || 1;
+
+    rates.map(async (rate) => {
+      const rate_currency = currencies.find(c => c.currency_id == rate.currency_id)?.rate || 1;
+      const rate_vat_rate = vat_rates.find(vr => vr.id == rate.vat_rate_id)?.rate || 0;
+      const net_unit = Math.round(rate.rate * rate_currency / invoice_currency_rate);
+      const net_line = net_unit * rate.quantity;
+      const vat_value = Math.round(net_line * rate_vat_rate / 10000);
+      const gross_value = net_line + vat_value;
+
+      await sql`
+      INSERT INTO invoice_rates (invoice_id, rate_id, currency_rate, net_unit, net_line, vat_value, gross_value) VALUES
+      (${invoice.id}, ${rate.id}, ${rate_currency}, ${net_unit}, ${net_line}, ${vat_value}, ${gross_value})
+      `;
+
+    });
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to save invoice rates to database.');
+  }
+}
+
+/*
 export async function saveShipmentRatesToInvoice(
   invoice_number: string, 
   date: Date,
@@ -665,7 +701,7 @@ export async function saveShipmentRatesToInvoice(
     console.log('Database error: ', error);
     throw new Error('Failed to save invoice rates to database.');
   }
-}
+}*/
 
 export async function deleteInvoiceRatesFromDb(invoice_id: string) {
   try {
@@ -1728,6 +1764,7 @@ export async function fetchInvoicesByShipmentId(id: string) {
     LEFT JOIN rates as r ON ir.rate_id = r.id
     WHERE r.shipment_id = ${id}
     GROUP BY i.id, cust.name, cust.email, cust.image_url, cur.short_name
+    ORDER BY i.number ASC
     `;
 
     return data.rows;
@@ -1753,5 +1790,25 @@ export async function setInvoiceNumberToShipmentRatesWithoutInvoices(invoice_num
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to set Invoice Number to Shipment Rates without Invoices.')
+  }
+}
+
+export async function clearIsInvoiceMarkInShipmentRates(
+  shipment_id: string) {
+  try {
+    await sql`
+    UPDATE rates 
+    SET is_invoice = true
+    WHERE id IN 
+    (SELECT r.id
+    FROM public.rates as r
+    left join shipments as sh on r.shipment_id = sh.id
+    left join invoice_rates as ir on r.id = ir.rate_id
+    WHERE sh.id = ${shipment_id} AND ir.rate_id IS NULL)
+    `;
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to clear is_invoice mark in shipment rates.')
   }
 }

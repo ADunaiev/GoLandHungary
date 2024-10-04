@@ -4,7 +4,7 @@ import { cache, Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import RatesTable from '@/app/ui/rates/rates-table';
 import { CreateRate, RestoreRatesInShipmentInvoice } from '@/app/ui/rates/buttons';
-import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber, fetchCurrenciesRates, fetchShipmentById, fetchShipmentFullById, fetchRatesByShipmentId, fetchCustomerById, fetchOrganisationById, fetchRoutesByShipmentId, fetchUnitsByShipmentId, fetchRatesByInvoiceNumber, setInvoiceNumberToShipmentRatesWithoutInvoices, fetchShipmentRatesForInvoice, saveShipmentRatesToInvoice } from '@/app/lib/data';
+import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber, fetchCurrenciesRates, fetchShipmentById, fetchShipmentFullById, fetchRatesByShipmentId, fetchCustomerById, fetchOrganisationById, fetchRoutesByShipmentId, fetchUnitsByShipmentId, fetchRatesByInvoiceNumber, setInvoiceNumberToShipmentRatesWithoutInvoices, fetchShipmentRatesForInvoice } from '@/app/lib/data';
 import { CustomerField, OrganisationField } from '@/app/lib/definitions';
 import CreateInvoiceFromShipmentForm from '@/app/ui/invoices/create-form-from-shipment';
 import RatesTableShipment from '@/app/ui/rates/rates-table-shipments';
