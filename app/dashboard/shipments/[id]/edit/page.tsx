@@ -27,6 +27,7 @@ import InvoicesTableData from '@/app/ui/invoices/table';
 import CreateInvoiceFromShipmentForm from '@/app/ui/invoices/create-form-from-shipment';
 import { CreateInvoiceFromShipment } from '@/app/ui/invoices/buttons';
 import InvoicesTableShipment from '@/app/ui/invoices/invoices-table-shipment';
+import RatesTableShipmentTab from '@/app/ui/rates/rates-table-shipment-tab';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -132,7 +133,7 @@ export default async function Page({ params, searchParams }: {
                         <CreateRateFromShipment id={id}/>
                     </div>
                     <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
-                        <RatesTable rates={rates}/>
+                        <RatesTableShipmentTab shipment_id={id} rates={rates}/>
                     </Suspense>
                 </TabPanel>
                 <TabPanel key='invoices-tab-panel'>

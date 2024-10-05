@@ -13,7 +13,7 @@ import Link from "next/link"
 import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
-import { CreateCityFromShipment } from "../cities/buttons"
+import { CreateCityFromShipment, ViewCities } from "../cities/buttons"
 
 export default function CreateRouteFormFromShipments({
     cities,
@@ -60,7 +60,7 @@ export default function CreateRouteFormFromShipments({
             })
         }}>
             <div className="flex">
-                <CreateCityFromShipment shipment_id={shipment.id} />
+                <ViewCities shipment_id={shipment.id} />
             </div>
             
 

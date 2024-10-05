@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb } from './data';
+import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -316,6 +316,97 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
     
 }
 
+export async function updateInvoiceFromShipment(shipment_id: string, invoice_id: string, formData: InvoiceType) {
+    
+    const validatedFields = InvoiceFormSchema.safeParse({
+        customerId: formData.customerId,
+        status: formData.status,
+        number: formData.number,
+        performance_date: formData.performance_date,
+        date: formData.date,
+        payment_date: formData.payment_date,
+        agreement_id: formData.agreement_id,
+        currency_id: formData.currency_id,
+        organisation_id: formData.organisation_id,
+        remarks: formData.remarks,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+          };
+    }
+
+    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    let amountInCents = 0;
+    let amountWoVatInCents = 0; 
+    let amountVatInCents = 0;
+    const formatedDate = date.toISOString().split('T')[0];
+    const formatedPerformanceDate = performance_date.toISOString().split('T')[0];
+    const formatedPaymentDate = payment_date.toISOString().split('T')[0];
+
+    let formatedAgreementId;
+    if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
+
+    const invoice = await fetchInvoiceByNumber(number);
+    await deleteInvoiceRatesFromDb(invoice.id);
+    await saveInvoiceRatesToDb(number, date, organisation_id, currency_id);
+    const currencies = await fetchCurrenciesRatesByDate(
+        date, organisation_id
+    );
+
+    const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
+
+    const managerial_currency_rate_id = await fetchManagerialCurrencyIdByOrganisationId(organisation_id);
+
+    const invoice_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
+    const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
+
+    invoiceRates.map(r => console.log('rate = ',r.net_unit));
+
+    invoiceRates.map(invoiceRate => {
+        amountWoVatInCents += invoiceRate.net_line;
+        amountVatInCents += invoiceRate.vat_value;
+        amountInCents += invoiceRate.gross_value; 
+    });
+
+    const amount_managerial_wo_vat = Math.round(amountWoVatInCents * invoice_currency_rate / invoice_managerial_rate);
+    const amount_managerial_with_vat = Math.round(amountInCents * invoice_currency_rate / invoice_managerial_rate);
+
+    try{
+        await sql`    
+            UPDATE invoices 
+            SET 
+                customer_id = ${customerId}, 
+                status = ${status}, 
+                performance_date = ${formatedPerformanceDate},
+                date = ${formatedDate}, 
+                payment_date = ${formatedPaymentDate},
+                agreement_id = ${formatedAgreementId}, 
+                currency_id = ${currency_id}, 
+                organisation_id = ${organisation_id}, 
+                remarks = ${remarks},
+                amount = ${amountInCents},
+                amount_wo_vat = ${amountWoVatInCents},
+                vat_amount = ${amountVatInCents},
+                currency_rate = ${invoice_currency_rate},
+                amount_managerial_wo_vat = ${amount_managerial_wo_vat},
+                amount_managerial_with_vat = ${amount_managerial_with_vat}
+            WHERE number = ${number}
+        `;
+
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Create Invoice.'
+        };
+    }
+
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
+    
+}
+
 export async function deleteInvoice(id: string) {
     //throw new Error('Failed to delete invoice');
 
@@ -525,6 +616,76 @@ export async function updateInvoiceRate(id: string, isCreateInvoice: boolean, fo
      }
 }
 
+export async function updateRateFromShipment(id: string, rate_id: string, formData: RateType) {
+
+    const validatedFields = InvoiceRateFormSchema.safeParse({
+        shipment_id: formData.shipment_id,
+        service_id: formData.service_id,
+        rate: formData.rate,
+        currency_id: formData.currency_id,
+        vat_rate_id: formData.vat_rate_id,
+        route_id: formData.route_id,
+        quantity: formData.quantity,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing fields. Failed to update rate.',
+        }
+    }
+
+    const {
+        shipment_id, 
+        service_id, 
+        rate, 
+        currency_id,
+        vat_rate_id,
+        route_id,
+        quantity 
+     } = validatedFields.data;
+
+     const rateInCents = rate * 100;
+     const vat_rate = await fetchVatRateById(vat_rate_id);
+     const netAmountInCents = Math.trunc(rateInCents * quantity);
+     const vatAmountInCents = Math.trunc(netAmountInCents * vat_rate.rate / 10000);
+     const grossAmountInCents = netAmountInCents + vatAmountInCents;
+
+     const isRateInInvoice = await isRateExistsInShipmentInvoices(shipment_id, rate_id)
+
+     if(isRateInInvoice) {
+        return { message: 'There is invoice with this rate!'}
+     } else {
+        try {
+            await sql`
+            UPDATE rates
+            SET 
+                shipment_id = ${shipment_id},
+                service_id = ${service_id},
+                rate = ${rateInCents},
+                currency_id = ${currency_id},
+                vat_rate_id = ${vat_rate_id},
+                route_id = ${route_id},
+                quantity = ${quantity},
+                net_amount = ${netAmountInCents},
+                vat_amount = ${vatAmountInCents},
+                gross_amount = ${grossAmountInCents}
+            WHERE id = ${rate_id}
+            `;
+         } catch(error) {
+            return {
+                message: 'Database error. Failed to update rate.'
+            }
+         }
+     }
+
+
+
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=3`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit?tab=3`)
+    return { message: 'Rate is updated successfully.'}
+}
+
 export async function deleteInvoiceRate(id: string) {
     try {
         await sql`DELETE FROM rates WHERE id = ${id}`;
@@ -541,6 +702,21 @@ export async function removeRateFromShipmentInvoice(shipment_id: string, rate_id
     try {
         await sql`UPDATE rates SET is_invoice = false WHERE shipment_id = ${shipment_id} AND id = ${rate_id}`;
         revalidatePath(`/dashboard/shipments/${shipment_id}/edit/create_invoice`);
+        return { message: 'Removed rate.'};
+    } catch(error) {
+        return {
+            message: 'Database error. Failed to remove rate from shipment invoice.'
+        }
+    }
+}
+
+export async function removeRateFromShipmentEditInvoice(
+    shipment_id: string, invoice_id: string, rate_id: string
+) {
+    try {
+        await sql`DELETE FROM invoice_rates WHERE invoice_id = ${invoice_id}`;
+        await sql`UPDATE rates SET is_invoice = false WHERE shipment_id = ${shipment_id} AND id = ${rate_id}`;
+        revalidatePath(`/dashboard/shipments/${shipment_id}/edit/invoices/${invoice_id}/edit_invoice`);
         return { message: 'Removed rate.'};
     } catch(error) {
         return {
@@ -575,6 +751,29 @@ export async function deleteInvoiceRateEditInvoice(id: string, rateId: string) {
             message: 'Database error. Failed to delete rate.'
         }
     }
+}
+
+export async function deleteRateFromShipment(shipment_id: string, rate_id: string) {
+
+    try {
+
+        const isRateInInvoice = await isRateExistsInShipmentInvoices(shipment_id, rate_id);
+
+
+        if (isRateInInvoice) {
+            console.log('There is invoice with this Rate!')
+            return { message: 'There is invoice with this Rate!' }
+        } else {
+            await sql`DELETE FROM rates WHERE shipment_id = ${shipment_id} AND id = ${rate_id}`;
+            revalidatePath(`/dashboard/shipments/${shipment_id}}/edit?tab=3`);
+            return { message: 'Rate deleted from shipment' };
+        }
+
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Rate from Shipment.',
+        };
+    }   
 }
 
 export async function authenticate(
@@ -841,7 +1040,11 @@ export async function updateRouteFromShipment(shipment_id: string, route_id: str
 
     const { start_city_id, end_city_id, transport_type_id }
      = validatedFields.data;
-    
+
+    let check_route_id = await fetchRouteIdByCitiesAndTransport(
+        start_city_id, end_city_id, transport_type_id
+    );
+
     try {
         await sql`
         UPDATE routes 
@@ -859,6 +1062,7 @@ export async function updateRouteFromShipment(shipment_id: string, route_id: str
         };
     }
 
+
     revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=1`);
     redirect(`/dashboard/shipments/${shipment_id}/edit?tab=1`);
 
@@ -867,10 +1071,22 @@ export async function updateRouteFromShipment(shipment_id: string, route_id: str
 export async function deleteRouteFromShipment(shipment_id: string, route_id: string) {
 
     try {
-        await sql`DELETE FROM shipment_route_units WHERE shipment_id = ${shipment_id} AND route_id = ${route_id}`;
-        await sql`DELETE FROM shipment_routes WHERE shipment_id = ${shipment_id} AND route_id = ${route_id}`;
-        revalidatePath(`/dashboard/shipments/${shipment_id}}/edit?tab=1`);
-        return { message: 'Route deleted from shipment' };
+
+        const isRouteInSRU = await isRouteExistsInSRU(shipment_id, route_id);
+        const isRouteInRates = await isRouteExistsInShipmentRates(shipment_id, route_id);
+
+        if (isRouteInSRU) {
+            console.log('There is units with this Route!')
+            return { message: 'There is units with this Route!' }
+        } else if(isRouteInRates) {
+            console.log('There is rates with this Route!')
+            return { message: 'There is rates with this Route!' }
+        } else {
+            await sql`DELETE FROM shipment_routes WHERE shipment_id = ${shipment_id} AND route_id = ${route_id}`;
+            revalidatePath(`/dashboard/shipments/${shipment_id}}/edit?tab=1`);
+            return { message: 'Route deleted from shipment' };
+        }
+
     } catch (error) {
         return {
             message: 'Database Error: Failed to Delete Route from Shipment.',

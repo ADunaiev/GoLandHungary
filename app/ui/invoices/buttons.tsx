@@ -44,7 +44,7 @@ export function UpdateInvoiceFromShipment({ shipment_id, invoice_id }:
   { shipment_id: string, invoice_id: string }) {
   return (
     <Link
-      href={`/dashboard/shipments/${shipment_id}/edit/${invoice_id}/edit`}
+      href={`/dashboard/shipments/${shipment_id}/edit/invoices/${invoice_id}/edit_invoice`}
       className="rounded-md border p-2 hover:bg-gray-100"
     >
       <PencilIcon className="w-5" />

@@ -35,6 +35,7 @@ import {
   VehicleTypeField,
   DriverTypeFull,
   CountryField,
+  CityFullField,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
@@ -1356,6 +1357,25 @@ export async function fetchCities() {
   }
 }
 
+export async function fetchCitiesFull() {
+  try {
+    const data = await sql<CityFullField>`
+      SELECT
+        c.id,
+        c.name_eng,
+        co.name_eng as country_name_eng
+      FROM cities as c
+      LEFT JOIN countries as co ON c.country_id = co.id
+      ORDER BY c.name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all cities full type.');
+  }
+}
+
 export async function fetchTransportTypes() {
   try {
     const data = await sql<TransportTypeField>`
@@ -1810,5 +1830,115 @@ export async function clearIsInvoiceMarkInShipmentRates(
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to clear is_invoice mark in shipment rates.')
+  }
+}
+
+export async function fetchFilteredCities(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const cities = await sql<CityFullField>`
+      SELECT
+        c.id,
+        c.name_eng,
+        co.name_eng as country_name_eng
+      FROM cities as c
+      LEFT JOIN countries as co ON c.country_id = co.id
+      WHERE
+        c.name_eng ILIKE ${`%${query}%`} OR
+        co.name_eng ILIKE ${`%${query}%`}
+      ORDER BY c.name_eng ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return cities.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered cities.');
+  }
+}
+
+export async function fetchCitiesPages(
+  query: string) {
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM public.cities as c
+    LEFT JOIN countries AS co ON c.country_id = co.id
+    WHERE
+      c.name_eng ILIKE ${`%${query}%`} OR
+      co.name_eng ILIKE ${`%${query}%`} 
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total pages number of cities.');
+  }
+}
+
+export async function isRouteExistsInSRU(
+  shipment_id: string, route_id: string
+) {
+  try {
+    const data = await sql`
+    SELECT COUNT(route_id)
+    FROM shipment_route_units
+    WHERE route_id = ${route_id} AND shipment_id = ${shipment_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.log(error)
+    throw new Error('Failed to check is route exists in Shipment Route Units.')
+  }
+}
+
+export async function isRouteExistsInShipmentRates(
+  shipment_id: string, route_id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(r.route_id)
+    FROM rates as r
+    WHERE r.route_id = ${route_id} AND r.shipment_id = ${shipment_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.log(error)
+    throw new Error('Failed to check is route exists in Shipment Rates.')
+  }
+}
+
+export async function isRateExistsInShipmentInvoices(
+  shipment_id: string, rate_id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(ir.rate_id)
+    FROM invoice_rates as ir
+    LEFT JOIN rates AS r ON ir.rate_id = r.id
+    WHERE ir.rate_id = ${rate_id} AND
+    r.shipment_id = ${shipment_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.log(error)
+    throw new Error('Failed to check is rate exists in Shipment Invoices.')
   }
 }

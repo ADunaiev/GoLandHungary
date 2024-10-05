@@ -19,6 +19,12 @@ export type CityField = {
   name_eng: string;
 };
 
+export type CityFullField = {
+  id: string;
+  name_eng: string;
+  country_name_eng: string;
+};
+
 export type TransportTypeField = {
   id: string;
   name_eng: string;

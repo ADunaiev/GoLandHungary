@@ -1,6 +1,9 @@
+'use client'
+
 import { ArrowPathIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { deleteInvoice, deleteInvoiceRate, deleteInvoiceRateEditInvoice, removeRateFromShipmentInvoice, restoreRatesInShipmentInvoice } from '@/app/lib/actions';
+import { deleteInvoice, deleteInvoiceRate, deleteInvoiceRateEditInvoice, deleteRateFromShipment, removeRateFromShipmentEditInvoice, removeRateFromShipmentInvoice, restoreRatesInShipmentInvoice } from '@/app/lib/actions';
+import { toast } from 'sonner';
 
 
 export function CreateRate({invoice_number}: 
@@ -42,7 +45,6 @@ export function CreateRateFromShipment({ id }:{
     );
 }
 
-
 export function UpdateRate({ id }: { id: string }) {
   return (
     <Link
@@ -58,6 +60,18 @@ export function UpdateRateEditInvoice({ id, rateId }:{ id: string, rateId: strin
   return (
     <Link
       href={`/dashboard/invoices/${id}/edit/${rateId}/edit_rate`}
+      className="rounded-md border p-2 hover:bg-gray-100"
+    >
+      <PencilIcon className="w-5" />
+    </Link>
+  );
+}
+
+export function UpdateRateFromShipment({ shipment_id, rate_id }: 
+  { shipment_id: string, rate_id: string }) {
+  return (
+    <Link
+      href={`/dashboard/shipments/${shipment_id}/edit/rates/${rate_id}/edit`}
       className="rounded-md border p-2 hover:bg-gray-100"
     >
       <PencilIcon className="w-5" />
@@ -107,6 +121,22 @@ export function RemoveRateFromShipmentInvoice({ shipment_id, rate_id } :
 
 }
 
+export function RemoveRateFromShipmentEditInvoice({ shipment_id, invoice_id, rate_id } :
+  { shipment_id: string, invoice_id: string, rate_id: string }) {
+
+    const removeRateFromShipmentEditInvoiceWithId = removeRateFromShipmentEditInvoice.bind(null, shipment_id, invoice_id, rate_id);
+
+    return (
+      <form action={removeRateFromShipmentEditInvoiceWithId}>
+        <button className="rounded-md border p-2 hover:bg-gray-100">
+          <span className="sr-only">Delete</span>
+          <TrashIcon className="w-5" />
+        </button>
+      </form>
+    );
+
+}
+
 export function RestoreRatesInShipmentInvoice({ shipment_id } :
   { shipment_id: string }) {
 
@@ -121,4 +151,28 @@ export function RestoreRatesInShipmentInvoice({ shipment_id } :
       </form>
     );
 
+}
+
+export function DeleteRateFromShipment ({ shipment_id, rate_id }: 
+  { shipment_id: string, rate_id: string }
+) {
+  const deleteRateFromShipmentWithId = deleteRateFromShipment.bind(null, shipment_id, rate_id);
+
+  const handleSubmit = async () => {     
+      try {
+        const response = await deleteRateFromShipmentWithId();
+        toast(response.message)
+      } catch(e) {
+        console.log(e);
+      }
+  }
+
+  return (
+    <form action={handleSubmit}>
+      <button className="rounded-md border p-2 hover:bg-gray-100">
+        <span className="sr-only">Delete</span>
+        <TrashIcon className="w-5" />
+      </button>
+    </form>
+  );
 }
