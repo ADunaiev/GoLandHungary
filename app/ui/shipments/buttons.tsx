@@ -1,6 +1,9 @@
+'use client'
+
 import { PencilIcon, PlusIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { deleteShipment, deleteInvoiceRate } from '@/app/lib/actions';
+import { toast } from 'sonner';
 
 
 export function CreateShipment() {
@@ -29,8 +32,17 @@ export function UpdateShipment({ id }: { id: string }) {
 export function DeleteShipment({ id }: { id: string }) {
   const deleteShipmentWithId = deleteShipment.bind(null, id);
 
+  const handleSubmit = async () => {
+    try {
+      const response = await deleteShipmentWithId();
+      toast(response.message);
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
   return (
-    <form action={deleteShipmentWithId}>
+    <form action={handleSubmit}>
       <button className="rounded-md border p-2 hover:bg-gray-100">
         <span className="sr-only">Delete</span>
         <TrashIcon className="w-5" />

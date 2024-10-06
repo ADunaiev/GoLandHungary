@@ -90,8 +90,8 @@ export async function fetchCardData() {
     const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
     const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
     const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
+         SUM(CASE WHEN status = 'paid' THEN amount_managerial_with_vat ELSE 0 END) AS "paid",
+         SUM(CASE WHEN status = 'pending' THEN amount_managerial_with_vat ELSE 0 END) AS "pending"
          FROM invoices`;
 
     const data = await Promise.all([
@@ -114,6 +114,46 @@ export async function fetchCardData() {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch card data.');
+  }
+}
+
+export async function fetchTransportCardData() {
+  try {
+    // You can probably combine these into a single SQL query
+    // However, we are intentionally splitting them to demonstrate
+    // how to initialize multiple queries in parallel with JS.
+    const transportPromise = sql`
+    SELECT 
+    SUM(CASE WHEN tt.name_eng = 'Auto' THEN r.quantity ELSE 0 END) as auto,
+    SUM(CASE WHEN tt.name_eng = 'Avia' THEN r.quantity ELSE 0 END) as avia,
+    SUM(CASE WHEN tt.name_eng = 'Railway' THEN r.quantity ELSE 0 END) as rail,
+    SUM(CASE WHEN tt.name_eng = 'Sea' THEN r.quantity ELSE 0 END) as sea
+    FROM invoice_rates AS ir
+    LEFT JOIN rates AS r ON ir.rate_id = r.id
+    LEFT JOIN routes AS ro ON r.route_id = ro.id
+    LEFT JOIN transport_types AS tt ON ro.transport_type_id = tt.id
+    `;  
+
+    const data = await Promise.all([
+      transportPromise,
+    ]);
+
+    const numberOfAuto = Number(data[0].rows[0].auto ?? '0');
+    const numberOfAvia = Number(data[0].rows[0].avia ?? '0');
+    const numberOfRail = Number(data[0].rows[0].rail ?? '0');
+    const numberOfSea = Number(data[0].rows[0].sea ?? '0');
+
+
+    return {
+      numberOfAuto,
+      numberOfAvia,
+      numberOfRail,
+      numberOfSea,
+
+    };
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch transport card data.');
   }
 }
 
@@ -538,10 +578,8 @@ export async function fetchInvoiceNumber() {
     `;
     
 
-    let oldNumber: string = oldInvoice.rows[0].max;
+    let oldNumber: string = oldInvoice.rows[0].max || 'GH_000000';
     //console.log('oldNumber = ', oldInvoice.rows[0].max);
-
-    if(oldNumber.trim() === '') { oldNumber = 'GH_000001'}
 
     const newNumber = Number(oldNumber.slice(3,9)) + 1;
     //console.log('newNumber = ', newNumber)
@@ -1182,7 +1220,7 @@ export async function fetchShipmentNumber() {
     `;
     
 
-    let oldNumber: string = oldShipment.rows[0].max;
+    let oldNumber: string = oldShipment.rows[0].max || '00000';
     //console.log('oldNumber = ', oldInvoice.rows[0].max);
 
     if(oldNumber.trim() === '') { oldNumber = '000001'}
@@ -2044,5 +2082,25 @@ export async function fetchInvoiceTotalAmounts(
   } catch(error) {
     console.log('Database error: ', error)
     throw new Error('Failed to fetch Invoice Totals.')
+  }
+}
+
+export async function isShipmentExistsInRoutes(
+  shipment_id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(sr.route_id)
+    FROM shipment_routes as sr
+    WHERE sr.shipment_id = ${shipment_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is shipment exists in Routes.')
   }
 }

@@ -5,7 +5,8 @@ import {
   InboxIcon,
 } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
-import { fetchCardData } from '@/app/lib/data';
+import { fetchCardData, fetchTransportCardData } from '@/app/lib/data';
+import Image from 'next/image';
 
 const iconMap = {
   collected: BanknotesIcon,
@@ -63,5 +64,59 @@ export function Card({
         {value}
       </p>
     </div>
+  );
+}
+
+const imageMap = {
+  avia: '/transport-types/pallet_air.png',
+  auto: '/transport-types/tent_auto.png',
+  rail: '/transport-types/wagon_railway.png',
+  sea:  '/transport-types/bulk.png',
+};
+
+export function TransportCard({
+  title,
+  value,
+  type,
+}: {
+  title: string;
+  value: number;
+  type: 'auto' | 'avia' | 'rail' | 'sea';
+}) {
+  const image = imageMap[type];
+
+  return (
+    <div className="rounded-xl bg-gray-50 p-2 shadow-sm">
+      <div className="flex p-4">
+        {image ? <Image height={28} width={28} src={image} alt='transport' /> : null}
+        <h3 className="mt-1 ml-2 text-sm font-medium">{title}</h3>
+      </div>
+      <p
+        className={`${lusitana.className}
+          truncate rounded-xl bg-white px-4 py-8 text-center text-2xl`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+export async function TransportCardWrapper() {
+  const {
+    numberOfAuto,
+    numberOfAvia,
+    numberOfRail,
+    numberOfSea,
+  } = await fetchTransportCardData();
+
+  return (
+    <>
+      {/* NOTE: Uncomment this code in Chapter 9 */}
+
+      <TransportCard key={'Auto'} title="Auto" value={numberOfAuto} type="auto" />
+      <TransportCard key={'Avia'} title="Avia" value={numberOfAvia} type="avia" />
+      <TransportCard key={'Rail'} title="Rail" value={numberOfRail} type="rail" />
+      <TransportCard key={'Sea'} title="Sea" value={numberOfSea} type="sea" />
+    </>
   );
 }
