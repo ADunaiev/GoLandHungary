@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomerField, InvoiceForm, InvoiceRateDbData } from '@/app/lib/definitions';
+import { CustomerAgreement, CustomerField, InvoiceForm, InvoiceRateDbData } from '@/app/lib/definitions';
 import {
   CalendarDaysIcon,
   CheckIcon,
@@ -44,7 +44,7 @@ export default function EditInvoiceForm ({
 }: { 
   customers: CustomerField[],
   currencies: CurrencyField[],
-  agreements: CustomerAgreementField[],
+  agreements: CustomerAgreement[],
   organisations: OrganisationField[],
   rates: RateTable[],
   invoice: InvoiceTypeFull,
@@ -112,6 +112,14 @@ export default function EditInvoiceForm ({
     return sum;
   }
 
+  function getCorrectDate(date: string) {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const formattedDate = (new Date(date)).getTime() - offset;
+
+    return new Date(formattedDate).toISOString().split('T')[0];
+  }
+
   const today = new Date();
   const offset = today.getTimezoneOffset() * 60000;
   const formattedDate = (new Date(invoice.date)).getTime() - offset;
@@ -128,11 +136,15 @@ export default function EditInvoiceForm ({
       resolver: zodResolver(InvoiceFormSchema),
   });
 
-
-
   const currency_id = watch('currency_id', invoice.currency_id);
   const organisation_id = watch('organisation_id', invoice.organisation_id);
   const invoice_date = watch('date', new Date(formattedDate)); 
+  const customer_id = watch('customerId', invoice.customer_id);
+
+  const defaultAgreement = agreements.find(agreement => (
+    agreement.customer_id === invoice.customer_id && 
+    agreement.organisation_id === invoice.organisation_id
+  ));
 
   const onSubmit = async(data: InvoiceType) => {
     try {
@@ -362,16 +374,24 @@ export default function EditInvoiceForm ({
               defaultValue={invoice.agreement_id}
               aria-describedby="agreement-error"
             >
-              <option value="" disabled>
-                Select an agreement
+              <option key="agreement" value={invoice.agreement_id}>
+                {defaultAgreement?.number}
               </option>
-              {agreements.map((agreement) => (
-                <option 
-                  key={agreement.id} 
-                  value={agreement.id} >
-                    {agreement.number_and_date}
-                </option>
-              ))}
+              {agreements.map((agreement) => {
+                if(
+                  agreement.customer_id === customer_id && 
+                  agreement.organisation_id === organisation_id &&
+                  agreement.id !== invoice.agreement_id
+                ) {
+                  return (
+                    <option 
+                      key={agreement.id} 
+                      value={agreement.id} >
+                        {agreement.number + ' - ' + getCorrectDate(agreement.date)}
+                    </option>
+                  )
+                }
+              })}
             </select>
             <DocumentTextIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>

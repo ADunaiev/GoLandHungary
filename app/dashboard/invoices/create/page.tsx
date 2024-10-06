@@ -4,7 +4,7 @@ import { cache, Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import RatesTable from '@/app/ui/rates/rates-table';
 import { CreateRate } from '@/app/ui/rates/buttons';
-import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber, fetchCurrenciesRates } from '@/app/lib/data';
+import { fetchCustomers, fetchCurrencies, fetchAgreementsByCusomerIdAndOrganisationId, fetchOrganisations, fetchInvoiceDraft, fetchInvoiceRatesByInvoiceNumber, fetchCurrenciesRates, fetchRatesTabelByInvoiceNumber, fetchAgreements } from '@/app/lib/data';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ export default async function Page() {
   const [customers, currencies, agreements, organisations, invoice, currencies_rates] = await Promise.all([
     fetchCustomers(),
     fetchCurrencies(),
-    fetchAgreementsByCusomerIdAndOrganisationId('', ''),
+    fetchAgreements(),
     fetchOrganisations(),
     fetchInvoiceDraft(),
     fetchCurrenciesRates(),
@@ -22,7 +22,7 @@ export default async function Page() {
 
 
   console.log(invoice.number);
-  const rates = await fetchInvoiceRatesByInvoiceNumber(invoice.number);
+  const rates = await fetchRatesTabelByInvoiceNumber(invoice.number);
  
   return (
     <main>

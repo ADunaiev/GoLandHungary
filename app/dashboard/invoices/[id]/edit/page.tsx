@@ -8,7 +8,8 @@ import {
     fetchCurrenciesRates,
     fetchInvoiceFullById,
     fetchInvoiceRatesByInvoiceId,
-    fetchInvoiceRatesByInvoiceNumber
+    fetchInvoiceRatesByInvoiceNumber,
+    fetchAgreements
 } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import { CreateRate, CreateRateEditInvoice } from '@/app/ui/rates/buttons';
@@ -25,7 +26,7 @@ export default async function Page({ params }: { params: { id: string } }) {
     const [customers, currencies, agreements, organisations, invoice, currencies_rates] = await Promise.all([
         fetchCustomers(),
         fetchCurrencies(),
-        fetchAgreementsByCusomerIdAndOrganisationId('', ''),
+        fetchAgreements(),
         fetchOrganisations(),
         fetchInvoiceFullById(id),
         fetchCurrenciesRates(),

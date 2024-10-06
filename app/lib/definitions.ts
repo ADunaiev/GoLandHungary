@@ -349,4 +349,12 @@ export type DriverTypeFull = {
   phone: string,
 }
 
+export type InvoiceTotalAmountsType = {
+  amount: number,
+  amount_wo_vat: number,
+  vat_amount: number,
+  amount_managerial_wo_vat: number,
+  amount_managerial_with_vat: number,
+}
+
 

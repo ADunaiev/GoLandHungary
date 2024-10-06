@@ -2,6 +2,9 @@ import { fetchCurrencies, fetchRoutes, fetchServices, fetchShipments, fetchVatRa
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import Form from '@/app/ui/rates/create-form'
 
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
+
 export default async function Page({ params }:{ params: { id: string } }) {
   const invoice_number = params.id;
 

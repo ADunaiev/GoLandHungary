@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable, InvoiceTypeFull, CurrencyRateField } from '@/app/lib/definitions';
+import { CustomerField, CurrencyField, CustomerAgreementField, OrganisationField, RateTable, InvoiceTypeFull, CurrencyRateField, CustomerAgreement } from '@/app/lib/definitions';
 import Link from 'next/link';
 import {
   CheckIcon,
@@ -39,7 +39,7 @@ export default function Form({
 }: { 
   customers: CustomerField[],
   currencies: CurrencyField[],
-  agreements: CustomerAgreementField[],
+  agreements: CustomerAgreement[],
   organisations: OrganisationField[],
   rates: RateTable[],
   invoice: InvoiceTypeFull,
@@ -106,6 +106,14 @@ export default function Form({
     return sum;
   }
 
+  function getCorrectDate(date: string) {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const formattedDate = (new Date(date)).getTime() - offset;
+
+    return new Date(formattedDate).toISOString().split('T')[0];
+  }
+
   const {
     register,
     handleSubmit,
@@ -120,6 +128,7 @@ export default function Form({
 
   const currency_id = watch('currency_id');
   const organisation_id = watch('organisation_id');
+  const customer_id = watch('customerId');
   const invoice_date = watch('date') || '2024-09-10';
 
   /* Don't forget to delete 
@@ -361,13 +370,19 @@ export default function Form({
               <option value="" disabled>
                 Select an agreement
               </option>
-              {agreements.map((agreement) => (
-                <option 
-                  key={agreement.id} 
-                  value={agreement.id} >
-                    {agreement.number_and_date}
-                </option>
-              ))}
+              {agreements.map((agreement) => {
+                if(
+                    agreement.organisation_id === organisation_id && 
+                    agreement.customer_id === customer_id
+                ) {
+                    return (
+                    <option 
+                      key={agreement.id} 
+                      value={agreement.id} >
+                        {agreement.number + ' - ' + getCorrectDate(agreement.date)}
+                    </option>)
+                }
+              })}
             </select>
             <DocumentTextIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>

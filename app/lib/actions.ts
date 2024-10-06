@@ -7,10 +7,11 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb } from './data';
+import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
+import { rejects } from 'assert';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -169,9 +170,8 @@ export async function createInvoiceFromShipment(shipment_id: string, formData: I
     
     const invoice = await fetchInvoiceByNumber(number);
 
-    await saveShipmentInvoiceRatesToDb(invoice, date, organisation_id, currency_id, shipment_id);
+    const ratesCount = await saveShipmentInvoiceRatesToDb(invoice, date, organisation_id, currency_id, shipment_id);
     
-    const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
     const currencies = await fetchCurrenciesRatesByDate(
         date, organisation_id
     );
@@ -180,16 +180,19 @@ export async function createInvoiceFromShipment(shipment_id: string, formData: I
     const invoice_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
     const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
 
-    //currencies.map(c => console.log(c.currency_id + " " + c.rate));
+    const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
+    console.log('invoice_rates length = ', invoiceRates.length);
 
-    invoiceRates.map(invoiceRate => {
-        amountWoVatInCents += invoiceRate.net_line;
-        amountVatInCents += invoiceRate.vat_value;
-        amountInCents += invoiceRate.gross_value; 
+    invoiceRates.map(async (invoice_rate) => {
+        await updateRateWithInvoiceNumber(invoice_rate.rate_id, number);
     });
 
-    const amount_managerial_wo_vat = Math.round(amountWoVatInCents * invoice_currency_rate / invoice_managerial_rate);
-    const amount_managerial_with_vat = Math.round(amountInCents * invoice_currency_rate / invoice_managerial_rate);
+    
+
+    
+
+    const totals = await fetchInvoiceTotalAmounts(
+        date, invoiceRates, invoice_currency_rate, invoice_managerial_rate); 
 
     try{
         await sql`    
@@ -204,12 +207,12 @@ export async function createInvoiceFromShipment(shipment_id: string, formData: I
                 currency_id = ${currency_id}, 
                 organisation_id = ${organisation_id}, 
                 remarks = ${remarks},
-                amount = ${amountInCents},
-                amount_wo_vat = ${amountWoVatInCents},
-                vat_amount = ${amountVatInCents},
+                amount = ${totals.amount},
+                amount_wo_vat = ${totals.amount_wo_vat},
+                vat_amount = ${totals.vat_amount},
                 currency_rate = ${invoice_currency_rate},
-                amount_managerial_wo_vat = ${amount_managerial_wo_vat},
-                amount_managerial_with_vat = ${amount_managerial_with_vat}
+                amount_managerial_wo_vat = ${totals.amount_managerial_wo_vat},
+                amount_managerial_with_vat = ${totals.amount_managerial_with_vat}
             WHERE number = ${number}
         `;
 
@@ -351,12 +354,16 @@ export async function updateInvoiceFromShipment(shipment_id: string, invoice_id:
 
     const invoice = await fetchInvoiceByNumber(number);
     await deleteInvoiceRatesFromDb(invoice.id);
-    await saveInvoiceRatesToDb(number, date, organisation_id, currency_id);
+    await saveShipmentInvoiceRatesToDb(invoice, date, organisation_id, currency_id, shipment_id);
     const currencies = await fetchCurrenciesRatesByDate(
         date, organisation_id
     );
 
     const invoiceRates = await fetchInvoiceRatesByInvoiceId(invoice.id);
+
+    invoiceRates.map(async(ir) => {
+        await updateRateWithInvoiceNumber(ir.rate_id, number);
+    });
 
     const managerial_currency_rate_id = await fetchManagerialCurrencyIdByOrganisationId(organisation_id);
 
@@ -402,8 +409,8 @@ export async function updateInvoiceFromShipment(shipment_id: string, invoice_id:
         };
     }
 
-    revalidatePath('/dashboard/invoices');
-    redirect('/dashboard/invoices');
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=4`);
+    redirect(`/dashboard/shipments/${shipment_id}/edit?tab=4`);
     
 }
 
@@ -688,7 +695,16 @@ export async function updateRateFromShipment(id: string, rate_id: string, formDa
 
 export async function deleteInvoiceRate(id: string) {
     try {
-        await sql`DELETE FROM rates WHERE id = ${id}`;
+        const rate = await fetchRateById(id);
+
+        console.log('shipment_id = ', rate.shipment_id)
+
+        if(rate.shipment_id === '') {
+            await sql`DELETE FROM rates WHERE id = ${id}`;
+        } else {
+            await sql`UPDATE rates SET invoice_number = null WHERE shipment_id = ${rate.shipment_id} AND id = ${id}`;  
+        }
+        
         revalidatePath('/dashboard/invoices/create');
         return { message: 'Deleted rate.'};
     } catch(error) {
@@ -714,7 +730,7 @@ export async function removeRateFromShipmentEditInvoice(
     shipment_id: string, invoice_id: string, rate_id: string
 ) {
     try {
-        await sql`DELETE FROM invoice_rates WHERE invoice_id = ${invoice_id}`;
+        await sql`DELETE FROM invoice_rates WHERE rate_id = ${rate_id}`;
         await sql`UPDATE rates SET is_invoice = false WHERE shipment_id = ${shipment_id} AND id = ${rate_id}`;
         revalidatePath(`/dashboard/shipments/${shipment_id}/edit/invoices/${invoice_id}/edit_invoice`);
         return { message: 'Removed rate.'};
@@ -743,7 +759,17 @@ export async function restoreRatesInShipmentInvoice(shipment_id: string) {
 export async function deleteInvoiceRateEditInvoice(id: string, rateId: string) {
     try {
         await sql`DELETE FROM invoice_rates WHERE rate_id = ${rateId}`;
-        await sql`DELETE FROM rates WHERE id = ${rateId}`;
+
+        const rate = await fetchRateById(rateId);
+
+        console.log('shipment_id = ', rate.shipment_id)
+
+        if(rate.shipment_id === '') {
+            await sql`DELETE FROM rates WHERE id = ${rateId}`;
+        } else {
+            await sql`UPDATE rates SET invoice_number = null WHERE shipment_id = ${rate.shipment_id} AND id = ${rateId}`;  
+        }
+
         revalidatePath(`/dashboard/invoices/${id}/edit`);
         return { message: 'Deleted rate.'};
     } catch(error) {

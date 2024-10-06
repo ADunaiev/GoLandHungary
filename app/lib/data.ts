@@ -36,6 +36,7 @@ import {
   DriverTypeFull,
   CountryField,
   CityFullField,
+  InvoiceTotalAmountsType,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
@@ -407,6 +408,25 @@ export async function fetchAgreementsByCusomerIdAndOrganisationId(
   }
 }
 
+export async function fetchAgreements() {
+  try {
+    const data = await sql<CustomerAgreement>`
+    SELECT ca.id, ca.number, ca.date, ca.validity, ca.organisation_id, ca.customer_id
+    FROM customers_agreements as ca
+    LEFT JOIN customers as c
+    ON ca.customer_id = c.id
+    ORDER BY ca.number ASC
+    `;
+
+    const agreements = data.rows;
+
+    return agreements;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch agreements.');
+  }
+}
+
 export async function fetchAgreementsByCusomerNameAndOrganisationName(
   customer_name: string, 
   organisation_name: string
@@ -468,6 +488,44 @@ export async function fetchInvoiceRatesByInvoiceNumber(invoice_number: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch rates for the invoice.');
+  }
+}
+
+export async function fetchRatesTabelByInvoiceNumber(invoice_number: string) {
+  try {
+    const data = await sql<RateTable>`
+    SELECT r.id, s.id as shipment_id, s.number as shipment_number,
+    ro.id as route_id, c1.name_eng as start_point_name,
+    c2.name_eng as end_point_name, se.id as service_id, 
+    se.name_eng as service_name, r.rate as rate,
+    cu.id as currency_id, cu.short_name as currency_name,
+    vr.id as vat_rate_id, vr.rate as vat_rate_rate,
+    vr.name_eng as vat_rate_name, r.quantity
+    FROM rates as r
+    LEFT JOIN shipments as s
+    ON r.shipment_id = s.id
+    LEFT JOIN routes as ro
+    ON r.route_id = ro.id
+    LEFT JOIN cities as c1
+    ON ro.start_city_id = c1.id
+    LEFT JOIN cities as c2
+    ON ro.end_city_id = c2.id
+    LEFT JOIN services as se
+    ON r.service_id = se.id
+    LEFT JOIN currencies as cu
+    ON r.currency_id = cu.id
+    LEFT JOIN vat_rates as vr
+    ON r.vat_rate_id = vr.id
+    LEFT JOIN invoice_rates as ir
+    ON r.id = ir.rate_id
+    LEFT JOIN invoices as i ON ir.invoice_id = i.id
+    WHERE r.invoice_number = ${invoice_number}
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch rates table by invoice number.');
   }
 }
 
@@ -662,10 +720,13 @@ export async function saveShipmentInvoiceRatesToDb(
 
     });
 
+    return rates.length;
+
   } catch(error) {
     console.log('Database error: ', error);
     throw new Error('Failed to save invoice rates to database.');
   }
+  return 0;
 }
 
 /*
@@ -1940,5 +2001,48 @@ export async function isRateExistsInShipmentInvoices(
   } catch(error) {
     console.log(error)
     throw new Error('Failed to check is rate exists in Shipment Invoices.')
+  }
+}
+
+export async function updateRateWithInvoiceNumber(rate_id: string, invoice_number: string) {
+  try {
+    await sql`
+    UPDATE rates 
+    SET invoice_number = ${invoice_number}
+    WHERE id = ${rate_id}
+    `;
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to update Rate with Invoice Number')
+  }
+}
+
+export async function fetchInvoiceTotalAmounts(
+  date: Date, invoiceRates: InvoiceRateDbData[],
+  currency_rate: number, invoice_managerial_rate: number 
+) {
+  try {
+    const invoiceTotals: InvoiceTotalAmountsType = {
+      amount: 0,
+      amount_wo_vat: 0,
+      vat_amount: 0,
+      amount_managerial_with_vat: 0,
+      amount_managerial_wo_vat: 0,
+    }
+
+    invoiceRates.map(invoiceRate => {
+        invoiceTotals.amount_wo_vat += invoiceRate.net_line;
+        invoiceTotals.vat_amount += invoiceRate.vat_value;
+        invoiceTotals.amount += invoiceRate.gross_value; 
+    }); 
+
+    invoiceTotals.amount_managerial_wo_vat = Math.round(invoiceTotals.amount_wo_vat * currency_rate / invoice_managerial_rate);
+    invoiceTotals.amount_managerial_with_vat = Math.round(invoiceTotals.amount * currency_rate / invoice_managerial_rate);
+
+    return invoiceTotals;
+
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch Invoice Totals.')
   }
 }
