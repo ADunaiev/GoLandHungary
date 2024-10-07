@@ -68,6 +68,7 @@ export type LatestInvoice = {
   image_url: string;
   email: string;
   amount: string;
+  currency_name: string;
 };
 
 // The database returns a number for amount, but we later format it to a string with the formatCurrency function
