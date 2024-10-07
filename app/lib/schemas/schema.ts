@@ -147,10 +147,32 @@ export type DriverTypeSchema = z.infer<typeof DriverFormSchema>
 export const CityFormSchema = z.object({
     name_eng: z.string()
         .min(1, { message: 'Please enter name' })
-        .regex(new RegExp('^[a-zA-Z0-9- ]*$'), 'Please use only latin letters'),
+        .regex(new RegExp(/^[a-zA-Z0-9- ]*$/), 'Please use only latin letters'),
     country_id: z.string()
         .min(1, { message: 'Please enter country' }),
 });
 
 export type CityTypeSchema = z.infer<typeof CityFormSchema>
+
+export const CurrencyRateFormSchema = z.object({
+    date: z.coerce.date({
+        message: 'Please enter date'
+    }),
+    eur_rate: z.coerce
+        .number({ message: 'Please enter number' })
+        .positive({ message: 'Please enter positive number'}),
+    usd_rate: z.coerce
+        .number({ message: 'Please enter number' })
+        .positive({ message: 'Please enter positive number'}),
+    uah_rate: z.coerce
+        .number({ message: 'Please enter number' })
+        .positive({ message: 'Please enter positive number'}),
+    huf_rate: z.coerce
+        .number({ message: 'Please enter number' })
+        .positive({ message: 'Please enter positive number'}),
+    organisation_id: z.string()
+        .min(1, { message: 'Please choose an organisation' }),
+});
+
+export type CurrencyRateTypeSchema = z.infer<typeof CurrencyRateFormSchema>
 

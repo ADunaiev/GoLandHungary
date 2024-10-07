@@ -6,6 +6,7 @@ import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { fetchFilteredInvoices, fetchInvoicesPages } from '@/app/lib/data';
 import InvoicesTableData from '@/app/ui/invoices/table';
+import { ViewCurrenciesRates } from '@/app/ui/currencies/buttons';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -32,6 +33,7 @@ export default async function Page({
       <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
         <Search placeholder="Search invoices..." />
         <CreateInvoice />
+        <ViewCurrenciesRates />
       </div>
       <Suspense key={query + currentPage} fallback={<InvoicesTableSkeleton />}>
         <InvoicesTableData query={query} currentPage={currentPage} invoices={invoices}/>

@@ -266,6 +266,14 @@ export type CurrencyRateField = {
   date: string,
 }
 
+export type CurrencyRate = {
+  id: string,
+  date: string,
+  short_name: string,
+  rate: number,
+  organisation_name: string,
+}
+
 export type RateTable = {
   id: string;
   shipment_id: string;

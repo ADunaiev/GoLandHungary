@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyRateByDateOrganisationCurrency, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { clearIsInvoiceMarkInShipmentRates, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -1390,4 +1390,66 @@ export async function createCity(shipment_id: string, formData: CityTypeSchema) 
 
     revalidatePath(`/dashboard/shipments/${shipment_id}/edit/create_route`);
     redirect(`/dashboard/shipments/${shipment_id}/edit/create_route`);
+}
+
+{/* Currency Rates */}
+
+export async function createCurrencyRate(formData: CurrencyRateTypeSchema) {
+    
+    const validatedFields = CurrencyRateFormSchema.safeParse({
+        date: formData.date,
+        eur_rate: formData.eur_rate,
+        usd_rate: formData.usd_rate,
+        uah_rate: formData.uah_rate,
+        huf_rate: formData.huf_rate,
+        organisation_id: formData.organisation_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { date, eur_rate, usd_rate, uah_rate, huf_rate, organisation_id }
+     = validatedFields.data;
+
+    let currency_rate_id = await fetchCurrencyRateIdByDate(date);
+
+    const formattedDate = date.toISOString().split('T')[0];
+
+    const eurId = await fetchCurrencyIdByShortName('EUR')
+    const usdId = await fetchCurrencyIdByShortName('USD')
+    const uahId = await fetchCurrencyIdByShortName('UAH')
+    const hufId = await fetchCurrencyIdByShortName('HUF')
+
+    const eurRateInCents = Math.round(eur_rate * 100); 
+    const usdRateInCents = Math.round(usd_rate * 100); 
+    const uahRateInCents = Math.round(uah_rate * 100); 
+    const hufRateInCents = Math.round(huf_rate * 100); 
+
+    if(currency_rate_id === '') {  
+        try {
+            await sql`
+            INSERT INTO currency_rates (date, rate, currency_id, organisation_id) VALUES
+            (${formattedDate}, ${eurRateInCents}, ${eurId}, ${organisation_id}),
+            (${formattedDate}, ${usdRateInCents}, ${usdId}, ${organisation_id}),
+            (${formattedDate}, ${uahRateInCents}, ${uahId}, ${organisation_id}),
+            (${formattedDate}, ${hufRateInCents}, ${hufId}, ${organisation_id})
+            `;
+
+        } catch (error) {
+            console.log(error);
+            return {
+                message: 'Database error: Failed to Insert Currency Rates to Db.'
+            };
+        }
+
+    } else {
+        throw new Error('Currency rate already exists!')
+    }
+
+    revalidatePath(`/dashboard/invoices/currencies_rates/view`);
+    redirect(`/dashboard/invoices/currencies_rates/view`);
 }

@@ -37,8 +37,9 @@ import {
   CountryField,
   CityFullField,
   InvoiceTotalAmountsType,
+  CurrencyRate,
 } from './definitions';
-import { formatCurrency } from './utils';
+import { formatCurrency, getCorrectDate } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
 import { getRandomValues } from 'crypto';
 import { cache } from 'react';
@@ -1863,6 +1864,25 @@ export async function fetchCityIdByNameAndCountry(
   }
 }
 
+export async function fetchCurrencyRateIdByDate(
+  date: Date,  
+) {
+  const formattedDate = date.toISOString().split('T')[0];
+
+  try {
+    const data = await sql`
+    SELECT id FROM currency_rates 
+    WHERE 
+      date = ${formattedDate}
+    `;
+
+    return data.rows[0] == null ? '' : String( data.rows[0].id);
+  } catch(error) {
+    console.log('Database error: ', error)
+    throw new Error('Failed to fetch currency rate id by date.')
+  }
+}
+
 export async function fetchInvoicesByShipmentId(id: string) {
   try {
     const data = await sql<InvoicesTable>`
@@ -1960,6 +1980,35 @@ export async function fetchFilteredCities(
   }
 }
 
+export async function fetchFilteredCurrencyRates(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const rates = await sql<CurrencyRate>`
+      SELECT cr.id, cr.date, c.short_name, cr.rate,
+        o.name_eng as organisation_name
+      FROM currency_rates as cr
+      LEFT JOIN currencies AS c ON cr.currency_id = c.id
+      LEFT JOIN organisations AS o ON cr.organisation_id = o.id
+      WHERE
+        cr.date::text ILIKE ${`%${query}%`} OR
+        c.short_name ILIKE ${`%${query}%`} OR
+        o.name_eng ILIKE ${`%${query}%`} OR
+        cr.rate::text ILIKE ${`%${query}%`}
+      ORDER BY cr.date DESC, c.short_name
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return rates.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered currencies rates.');
+  }
+}
+
 export async function fetchCitiesPages(
   query: string) {
   try {
@@ -1976,6 +2025,29 @@ export async function fetchCitiesPages(
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch total pages number of cities.');
+  }
+}
+
+export async function fetchCurrencyRatesPages(
+  query: string) {
+  try {
+    const count = await sql`
+    SELECT COUNT(*)
+    FROM currency_rates as cr
+    LEFT JOIN currencies AS c ON cr.currency_id = c.id
+    LEFT JOIN organisations AS o ON cr.organisation_id = o.id
+    WHERE
+      cr.date::text ILIKE ${`%${query}%`} OR
+      c.short_name ILIKE ${`%${query}%`} OR
+      o.name_eng ILIKE ${`%${query}%`} OR
+      cr.rate::text ILIKE ${`%${query}%`}
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total pages number of currency rates.');
   }
 }
 
@@ -2102,5 +2174,21 @@ export async function isShipmentExistsInRoutes(
   } catch(error) {
     console.error(error)
     throw new Error('Failed to check is shipment exists in Routes.')
+  }
+}
+
+export async function fetchCurrencyIdByShortName(
+  short_name: string) {
+  try {
+    const data = await sql`
+    SELECT id
+    FROM currencies
+    WHERE short_name = ${short_name}
+    `;
+
+    return String(data.rows[0].id) || '';
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to fetch currency id by currency short name.')
   }
 }
