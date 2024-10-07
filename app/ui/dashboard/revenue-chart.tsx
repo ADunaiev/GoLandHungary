@@ -1,7 +1,8 @@
 import { generateYAxis } from '@/app/lib/utils';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
-import { fetchRevenue } from '@/app/lib/data';
+import { fetchRevenue, fetchRevenueNew } from '@/app/lib/data';
+import { Revenue } from '@/app/lib/definitions';
 
 
 // This component is representational only.
@@ -10,8 +11,23 @@ import { fetchRevenue } from '@/app/lib/data';
 // https://www.chartjs.org/
 // https://airbnb.io/visx/
 
+const Months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 export default async function RevenueChart() {
-  const revenue = await fetchRevenue();
+  //const revenue = await fetchRevenue();
+  const result = await fetchRevenueNew();
+  const revenue : Revenue[] = [];
+
+  for (let index = 0; index < Months.length; index++) {
+    
+    const temp = result.find(r => (Number(r.month) === index + 1));
+    let mon = Months[index];
+    let rev = temp?.revenue ? (temp?.revenue / 100000) : 0;
+
+    revenue.push({ month: mon, revenue: rev});
+  }
+
   const chartHeight = 350;
   //NOTE: Uncomment this code in Chapter 7
 

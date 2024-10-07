@@ -39,7 +39,7 @@ import {
   InvoiceTotalAmountsType,
   CurrencyRate,
 } from './definitions';
-import { formatCurrency, getCorrectDate } from './utils';
+import { formatCurrency, formatNeededCurrency, getCorrectDate } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
 import { getRandomValues } from 'crypto';
 import { cache } from 'react';
@@ -63,18 +63,38 @@ export async function fetchRevenue() {
   }
 }
 
+export async function fetchRevenueNew() {
+  try {
+
+    const data = await sql<Revenue>`
+    SELECT  
+      EXTRACT(MONTH FROM date) as month, 
+      SUM(amount_managerial_with_vat) as revenue
+    FROM invoices
+    GROUP BY EXTRACT(MONTH FROM date)
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch revenue data new.');
+  }
+}
+
 export async function fetchLatestInvoices() {
   try {
     const data = await sql<LatestInvoiceRaw>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+      SELECT invoices.amount, customers.name, customers.image_url, 
+      customers.email, invoices.id, currencies.short_name as currency_name
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
+      JOIN currencies ON invoices.currency_id = currencies.id
+      ORDER BY invoices.number DESC
       LIMIT 5`;
 
     const latestInvoices = data.rows.map((invoice) => ({
       ...invoice,
-      amount: formatCurrency(invoice.amount),
+      amount: formatNeededCurrency(invoice.amount, invoice.currency_name),
     }));
     return latestInvoices;
   } catch (error) {
