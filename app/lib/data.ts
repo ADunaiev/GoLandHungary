@@ -153,6 +153,8 @@ export async function fetchTransportCardData() {
     LEFT JOIN rates AS r ON ir.rate_id = r.id
     LEFT JOIN routes AS ro ON r.route_id = ro.id
     LEFT JOIN transport_types AS tt ON ro.transport_type_id = tt.id
+    LEFT JOIN services AS s ON r.service_id = s.id
+    WHERE s.is_key_service = true
     `;  
 
     const data = await Promise.all([
@@ -2210,5 +2212,18 @@ export async function fetchCurrencyIdByShortName(
   } catch(error) {
     console.error(error)
     throw new Error('Failed to fetch currency id by currency short name.')
+  }
+}
+
+export async function clearRatesFromInvoiceNumber(invoice_number: string) {
+  try {
+    await sql`
+    UPDATE rates 
+    SET invoice_number = ''
+    WHERE invoice_number = ${invoice_number}
+    `   
+  } catch(error) {
+    console.error('Database error: ', error)
+    throw new Error('Failed to clear invoice number in rates')
   }
 }
