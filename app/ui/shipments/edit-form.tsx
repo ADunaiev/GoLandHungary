@@ -113,6 +113,7 @@ export default function EditShipmentForm ({
                     <input
                     id="date"
                     type="date"
+                    disabled
                     placeholder='dd-mm-yyyy'
                     {...register('date')}
                     defaultValue={new Date(formattedDate).toISOString().split('T')[0]}

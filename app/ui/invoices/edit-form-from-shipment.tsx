@@ -163,6 +163,7 @@ export default function InvoiceEditFormFromShipment ({
             <input
                   id="number"
                   step="0.01"
+                  disabled
                   {...register('number')}
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="number-error"

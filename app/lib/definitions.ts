@@ -40,11 +40,15 @@ export type Customer = {
 export type CustomerFull = {
   id: string;
   name: string;
+  name_hun: string;
   email: string;
   image_url: string;
   code: string;
   address_eng: string;
+  address_hun: string;
   vat_number_eu: string;
+  country_id: string;
+  country_name: string;
 };
 
 export type Invoice = {

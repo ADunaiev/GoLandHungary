@@ -25,6 +25,8 @@ import { InvoiceFormSchema, ShipmentFormSchema, ShipmentType } from '@/app/lib/s
 import { I18nProvider } from '@react-aria/i18n';
 import React from 'react';
 import InvoiceTable from '../rates/invoice-table';
+import { getCorrectDate } from '@/app/lib/utils';
+import { useDebouncedCallback } from 'use-debounce';
 
 export default function Form({ 
   customers,
@@ -63,13 +65,14 @@ export default function Form({
   }, [watch]);
   till here */
 
-  const onSubmit = async (data: ShipmentType) => {
+  const onSubmit = useDebouncedCallback( async (data: ShipmentType) => {
     try{
       await createShipment(data);
     } catch (e) {
       console.log(e);
     }
-  }
+  }, 300);
+  
   return (
     <form onSubmit={(e) => {
       handleSubmit(
@@ -110,7 +113,7 @@ export default function Form({
                   type="date"
                   placeholder='dd-mm-yyyy'
                   {...register('date')}
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  value={new Date().toISOString().split('T')[0]}
                   aria-describedby="date-error"
                   className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
                 />

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
 import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
@@ -275,8 +275,6 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
     const invoice_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
     const invoice_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
 
-    invoiceRates.map(r => console.log('rate = ',r.net_unit));
-
     invoiceRates.map(invoiceRate => {
         amountWoVatInCents += invoiceRate.net_line;
         amountVatInCents += invoiceRate.vat_value;
@@ -285,27 +283,6 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
 
     const amount_managerial_wo_vat = Math.round(amountWoVatInCents * invoice_currency_rate / invoice_managerial_rate);
     const amount_managerial_with_vat = Math.round(amountInCents * invoice_currency_rate / invoice_managerial_rate);
-
-    console.log(`    
-            UPDATE invoices 
-            SET 
-                customer_id = ${customerId}, 
-                status = ${status}, 
-                performance_date = ${formatedPerformanceDate},
-                date = ${formatedDate}, 
-                payment_date = ${formatedPaymentDate},
-                agreement_id = ${formatedAgreementId}, 
-                currency_id = ${currency_id}, 
-                organisation_id = ${organisation_id}, 
-                remarks = ${remarks},
-                amount = ${amountInCents},
-                amount_wo_vat = ${amountWoVatInCents},
-                vat_amount = ${amountVatInCents},
-                currency_rate = ${invoice_currency_rate},
-                amount_managerial_wo_vat = ${amount_managerial_wo_vat},
-                amount_managerial_with_vat = ${amount_managerial_with_vat}
-            WHERE number = ${number}
-        `)
 
     try{
         await sql`    
@@ -850,34 +827,17 @@ export async function authenticate(
 
 {/* Customers */}
 
-const CustomerFormSchema = z.object({
-    id: z.string(),
-    name: z.string({
-        invalid_type_error: 'Please select a customer.',
-    }),
-    email: z.string({
-        invalid_type_error: 'Please enter valid email.'
-    }).email(),
-    image_url: z.string({
-        invalid_type_error: 'Please enter valid url.'
-    }),
-});
-const CreateCustomer = CustomerFormSchema.omit({id:true});
-
-export type CustomerState = {
-    errors?: {
-      name?: string[];
-      email?: string[];
-      image_url?: string[];
-    };
-    message?: string | null;
-  };
-
-export async function createCustomer(prevState: CustomerState, formData: FormData) {
-    const validatedFields = CreateCustomer.safeParse({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        image_url: formData.get('image_url'),
+export async function createCustomer(formData: CustomerTypeSchema) {
+    const validatedFields = CustomerFormSchema.safeParse({
+        name_eng: formData.name_eng,
+        email: formData.email,
+        image_url: formData.image_url,
+        name_hun: formData.name_hun,
+        code: formData.code,
+        country_id: formData.country_id,
+        address_eng: formData.address_eng,
+        address_hun: formData.address_hun,
+        vat_number_eu: formData.vat_number_eu,
     });
 
     if (!validatedFields.success) {
@@ -887,12 +847,12 @@ export async function createCustomer(prevState: CustomerState, formData: FormDat
         };
       }
 
-    const { name, email, image_url } = validatedFields.data;
+    const { name_eng, email, image_url, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
 
     try{
         await sql`
             INSERT INTO customers (name, email, image_url)
-            VALUES (${name}, ${email}, ${image_url})
+            VALUES (${name_eng}, ${email}, ${image_url})
         `;
     } catch (error) {
         return {

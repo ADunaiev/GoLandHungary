@@ -25,6 +25,7 @@ import React from 'react';
 import InvoiceTable from '../rates/invoice-table';
 import { CreateShipment } from '../shipments/buttons';
 import { CreateInvoice } from './buttons';
+import { useDebouncedCallback } from 'use-debounce';
 
 type InvoiceType = z.infer<typeof InvoiceFormSchema>;
 
@@ -153,13 +154,14 @@ export default function CreateInvoiceFromShipmentForm({
 
   
 
-  const onSubmit = async (data: InvoiceType) => {
+  const onSubmit = useDebouncedCallback( async (data: InvoiceType) => {
     try{
       await createInvoiceWithShipment(data)
     } catch (e) {
       console.log(e);
     }
-  }
+  }, 300);
+  
   return (
     <form onSubmit={(e) => {
       handleSubmit(
@@ -179,6 +181,7 @@ export default function CreateInvoiceFromShipmentForm({
             <input
                   id="number"
                   step="0.01"
+                  disabled
                   {...register('number')}
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="number-error"

@@ -15,6 +15,7 @@ import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
 import { toast, Toaster } from 'sonner'
+import { useDebouncedCallback } from "use-debounce"
 
 export default function CreateCityForm({
     countries,
@@ -35,14 +36,14 @@ export default function CreateCityForm({
         resolver: zodResolver(CityFormSchema)
     });
 
-    const onSubmit = async (data:CityTypeSchema) => {
+    const onSubmit = useDebouncedCallback( async (data:CityTypeSchema) => {
         try {
             await createCityFromShipment(data);
             toast.success('City is created!')
         } catch(e) {
             toast.warning('City already exists!')
         }
-    }
+    }, 300);
 
     return (
         <form onSubmit={(e) => {

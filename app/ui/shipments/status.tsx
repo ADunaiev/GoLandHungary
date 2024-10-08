@@ -12,7 +12,7 @@ export default function ShipmentStatus({ status }: { status: string }) {
       className={clsx(
         'inline-flex items-center rounded-full px-2 py-1 text-xs',
         {
-          'bg-gray-100 text-gray-500': status === 'in_process',
+          'bg-gray-100 text-black': status === 'in_process',
           'bg-green-500 text-white': status === 'delivered',
         },
       )}
@@ -20,7 +20,7 @@ export default function ShipmentStatus({ status }: { status: string }) {
       {status === 'in_process' ? (
         <>
           in_process
-          <ArrowRightIcon className="ml-1 w-4 text-gray-500" />
+          <ArrowRightIcon className="ml-1 w-4 text-black" />
         </>
       ) : null}
       {status === 'delivered' ? (

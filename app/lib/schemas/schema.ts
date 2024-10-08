@@ -176,3 +176,27 @@ export const CurrencyRateFormSchema = z.object({
 
 export type CurrencyRateTypeSchema = z.infer<typeof CurrencyRateFormSchema>
 
+export const CustomerFormSchema = z.object({
+    name_eng: z.string().min(1, {
+        message: 'Please enter name',
+    }),
+    email: z.string().email({
+        message: 'Please use correct email format'
+    }),
+    code: z.string().min(1, {
+        message: 'Please enter a code',
+    }),
+    address_eng: z.string().min(1, {
+        message: 'Please enter an address',
+    }),
+    country_id: z.string().min(1, {
+        message: 'Please select country',
+    }),
+    image_url: z.string(),
+    name_hun: z.string(),
+    address_hun: z.string(),
+    vat_number_eu: z.string(),
+});
+
+export type CustomerTypeSchema = z.infer<typeof CustomerFormSchema>;
+
