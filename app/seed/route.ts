@@ -6,7 +6,7 @@ import {
 
 const client = await db.connect();
 
-export async function seedUsers() {
+async function seedUsers() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
   await client.sql`
     CREATE TABLE IF NOT EXISTS users (
@@ -122,16 +122,4 @@ export async function GET() {
   } 
 } */
 
-export async function GET() {
-    try {
-     await client.sql`BEGIN`;
-     await seedUsers();
-     await client.sql`COMMIT`;
- 
-     return Response.json({ message: 'Database seeded successfully' });
-   } catch (error) {
-     await client.sql`ROLLBACK`;
-     return Response.json({ error }, { status: 500 });
-   } 
- }
 
