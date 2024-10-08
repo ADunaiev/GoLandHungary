@@ -19,6 +19,7 @@ import Link from "next/link"
 import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
+import { useDebouncedCallback } from "use-debounce"
 
 type RateType = Zod.infer<typeof InvoiceRateFormSchema>
 
@@ -60,13 +61,13 @@ export default function Form({
       }, [watch]);
      till here */
 
-    const onSubmit = async (data:RateType) => {
+    const onSubmit = useDebouncedCallback( async (data:RateType) => {
         try {
             await createRateWithInvoiceNumber(data);
         } catch(e) {
             console.log(e);
         }
-    }
+    }, 300);
 
     const rate_without_vat = watch('rate');
     const quantity = watch('quantity');

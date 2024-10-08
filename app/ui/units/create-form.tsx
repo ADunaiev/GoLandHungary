@@ -15,6 +15,7 @@ import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
 import { toast, Toaster } from 'sonner'
+import { useDebouncedCallback } from "use-debounce"
 
 export default function CreateUnitForm({
     unit_types,
@@ -37,14 +38,14 @@ export default function CreateUnitForm({
         resolver: zodResolver(UnitFormSchema)
     });
 
-    const onSubmit = async (data:UnitTypeSchema) => {
+    const onSubmit = useDebouncedCallback( async (data:UnitTypeSchema) => {
         try {
             await createUnitFromShipment(data);
             toast.success('Unit is created!')
         } catch(e) {
             toast.warning('Unit is already exists!')
         }
-    }
+    }, 300);
 
     return (
         <form onSubmit={(e) => {

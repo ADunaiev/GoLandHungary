@@ -19,6 +19,7 @@ import Link from "next/link"
 import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
+import { useDebouncedCallback } from "use-debounce"
 
 export default function CreateRateFormFromShipments({
     services,
@@ -54,13 +55,13 @@ export default function CreateRateFormFromShipments({
       }, [watch]);
      till here */
 
-    const onSubmit = async (data:RateTypeForShipment) => {
+    const onSubmit = useDebouncedCallback( async (data:RateTypeForShipment) => {
         try {
             await createRateWithShipmentId(data);
         } catch(e) {
             console.log(e);
         }
-    }
+    }, 300);
 
     const rate_without_vat = watch('rate');
     const quantity = watch('quantity');

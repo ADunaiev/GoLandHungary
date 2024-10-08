@@ -14,6 +14,7 @@ import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
 import { CreateCityFromShipment, ViewCities } from "../cities/buttons"
+import { useDebouncedCallback } from "use-debounce"
 
 export default function CreateRouteFormFromShipments({
     cities,
@@ -45,13 +46,13 @@ export default function CreateRouteFormFromShipments({
       }, [watch]);
      till here */
 
-    const onSubmit = async (data:RouteTypeSchema) => {
+    const onSubmit = useDebouncedCallback( async (data:RouteTypeSchema) => {
         try {
             await createRouteWithShipmentId(data);
         } catch(e) {
             console.log(e);
         }
-    }
+    }, 300);
 
     return (
         <form onSubmit={(e) => {

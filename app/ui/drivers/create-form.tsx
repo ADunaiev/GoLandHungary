@@ -14,6 +14,7 @@ import Link from "next/link"
 import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
+import { useDebouncedCallback } from "use-debounce"
 
 export default function CreateDriverForm({
     shipment_id,
@@ -37,13 +38,13 @@ export default function CreateDriverForm({
         resolver: zodResolver(DriverFormSchema)
     });
 
-    const onSubmit = async (data:DriverTypeSchema) => {
+    const onSubmit = useDebouncedCallback( async (data:DriverTypeSchema) => {
         try {
             await createDriverFromShipment(data);
         } catch(e) {
             console.log(e);
         }
-    }
+    }, 300);
 
     return (
         <form onSubmit={(e) => {

@@ -15,6 +15,7 @@ import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
 import { toast } from 'sonner'
+import { useDebouncedCallback } from "use-debounce"
 
 export default function CreateVehicleForm({
     transport_types,
@@ -42,14 +43,14 @@ export default function CreateVehicleForm({
         resolver: zodResolver(VehicleFormSchema)
     });
 
-    const onSubmit = async (data:VehicleTypeSchema) => {
+    const onSubmit = useDebouncedCallback( async (data:VehicleTypeSchema) => {
         try {
             await createVehicleFromShipment(data);
             toast.success('Vehicle is created!')
         } catch(e) {
             toast.warning('Vehicle is already exists!')
         }
-    }
+    }, 300);
 
     return (
         <form onSubmit={(e) => {
