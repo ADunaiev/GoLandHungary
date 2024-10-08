@@ -2,9 +2,9 @@
 // https://nextjs.org/learn/dashboard-app/fetching-data
 const users = [
   {
-    name: 'Andrii Dunaiev',
-    email: '',
-    password: '',
+    name: 'Vadym Lialin',
+    email: 'lyalin.vadim06@gmail.com',
+    password: 'ASF234_43(*YTEWR#%t#HJBF#@#%wwefr',
     is_sale: true,
     is_documentation: true,
   },

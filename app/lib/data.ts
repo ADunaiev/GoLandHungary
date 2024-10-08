@@ -43,6 +43,8 @@ import { formatCurrency, formatNeededCurrency, getCorrectDate } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
 import { getRandomValues } from 'crypto';
 import { cache } from 'react';
+import { users } from './placeholder-data';
+import bcrypt from 'bcrypt';
 
 export async function fetchRevenue() {
   try {
@@ -2225,5 +2227,35 @@ export async function clearRatesFromInvoiceNumber(invoice_number: string) {
   } catch(error) {
     console.error('Database error: ', error)
     throw new Error('Failed to clear invoice number in rates')
+  }
+}
+
+
+export async function seedUsers() {
+
+  const users = [
+    {
+      name: 'Vadym Lialin',
+      email: 'lyalin.vadim06gmail.com',
+      password: 'ASF234_43*YTEWR#%t#HJBF#@#%wwefr',
+      is_sale: true,
+      is_documentation: true,
+    },
+  ];
+
+  try {
+    const insertedUsers = await Promise.all(
+      users.map(async (user) => {
+        const hashedPassword = await bcrypt.hash(user.password, 10);
+        return sql`
+          INSERT INTO users (id, name, email, password, is_sale, is_documentation)
+          VALUES (${user.name}, ${user.email}, ${hashedPassword}, ${user.is_sale}, ${user.is_documentation})
+          ON CONFLICT (id) DO NOTHING;
+        `;
+      }),
+    );
+  } catch(error) {
+    console.error('Database error: ', error)
+    throw new Error('Failed to seed user')
   }
 }

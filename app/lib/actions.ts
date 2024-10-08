@@ -286,6 +286,27 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
     const amount_managerial_wo_vat = Math.round(amountWoVatInCents * invoice_currency_rate / invoice_managerial_rate);
     const amount_managerial_with_vat = Math.round(amountInCents * invoice_currency_rate / invoice_managerial_rate);
 
+    console.log(`    
+            UPDATE invoices 
+            SET 
+                customer_id = ${customerId}, 
+                status = ${status}, 
+                performance_date = ${formatedPerformanceDate},
+                date = ${formatedDate}, 
+                payment_date = ${formatedPaymentDate},
+                agreement_id = ${formatedAgreementId}, 
+                currency_id = ${currency_id}, 
+                organisation_id = ${organisation_id}, 
+                remarks = ${remarks},
+                amount = ${amountInCents},
+                amount_wo_vat = ${amountWoVatInCents},
+                vat_amount = ${amountVatInCents},
+                currency_rate = ${invoice_currency_rate},
+                amount_managerial_wo_vat = ${amount_managerial_wo_vat},
+                amount_managerial_with_vat = ${amount_managerial_with_vat}
+            WHERE number = ${number}
+        `)
+
     try{
         await sql`    
             UPDATE invoices 
@@ -310,7 +331,7 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
 
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Create Invoice.'
+            message: 'Database Error: Failed to Update Invoice.'
         };
     }
 

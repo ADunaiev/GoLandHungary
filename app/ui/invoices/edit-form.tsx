@@ -374,7 +374,7 @@ export default function EditInvoiceForm ({
               defaultValue={invoice.agreement_id}
               aria-describedby="agreement-error"
             >
-              <option key="agreement" value={invoice.agreement_id}>
+              <option key="agreement" value={defaultAgreement?.id}>
                 {defaultAgreement?.number}
               </option>
               {agreements.map((agreement) => {
