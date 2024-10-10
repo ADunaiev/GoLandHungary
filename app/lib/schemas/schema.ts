@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { firstDayInPreviousMonth, maxDayForInvoicePayment } from '../utils';
 
 export const InvoiceFormSchema = z.object({
     customerId: z.string().min(1, {
@@ -23,15 +24,37 @@ export const InvoiceFormSchema = z.object({
     status: z.enum(['pending', 'paid'], {
         message: 'Please select an invoice status.',
       }),
-    date: z.coerce.date({
-        message: 'Please enter invoice date'
-    }),
-    performance_date: z.coerce.date({
+    date: z
+        .coerce.date({
+            message: 'Please enter invoice date'
+        })
+        .min(firstDayInPreviousMonth(), {
+            message: `Min date is ${(firstDayInPreviousMonth()).toISOString().split('T')[0]}`
+        })
+        .max(new Date(), {
+            message: 'You could not choose future date'
+        }),
+    performance_date: z
+        .coerce.date({
         message: 'Please enter performance date'
-    }),
-    payment_date: z.coerce.date({
-        message: 'Please enter payment date'
-    }),
+        })
+        .min(firstDayInPreviousMonth(), {
+            message: `Min date is ${(firstDayInPreviousMonth()).toISOString().split('T')[0]}`
+        })
+        .max(new Date(), {
+            message: 'You could not choose future date'
+        }),
+        
+    payment_date: z
+        .coerce.date({
+            message: 'Please enter payment date'
+        })
+        .min(new Date(), {
+            message: 'Please choose future date'
+        })
+        .max(maxDayForInvoicePayment(), {
+            message: `Max date is ${(maxDayForInvoicePayment()).toISOString().split('T')[0]}`
+        }),
     remarks: z.string(),
 
     currency_id: z.string().min(1, {

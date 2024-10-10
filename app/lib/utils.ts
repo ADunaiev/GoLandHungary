@@ -63,6 +63,24 @@ export function getCorrectDate(date: string) {
   return new Date(formattedDate).toISOString().split('T')[0];
 }
 
+export function firstDayInPreviousMonth() {
+  const today = new Date()
+  const offset = today.getTimezoneOffset() * 60000;
+  const formattedDate = new Date(today.getTime() - offset);
+
+  return new Date(formattedDate.getFullYear(), formattedDate.getMonth() - 1, 1)
+
+}
+
+export function maxDayForInvoicePayment() {
+  const today = new Date()
+  const offset = today.getTimezoneOffset() * 60000;
+  const formattedDate = new Date(today.getTime() - offset);
+
+  return new Date(formattedDate.getFullYear(), formattedDate.getMonth() + 6, formattedDate.getDate())
+
+}
+
 export const generatePagination = (currentPage: number, totalPages: number) => {
   // If the total number of pages is 7 or less,
   // display all pages without any ellipsis.
