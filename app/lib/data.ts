@@ -38,6 +38,7 @@ import {
   CityFullField,
   InvoiceTotalAmountsType,
   CurrencyRate,
+  CountryType,
 } from './definitions';
 import { formatCurrency, formatNeededCurrency, getCorrectDate } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
@@ -1869,6 +1870,24 @@ export async function fetchCountries() {
   }
 }
 
+export async function fetchCountriesFull() {
+  try {
+    const data = await sql<CountryType>`
+      SELECT
+        id,
+        name_eng,
+        is_eu_country
+      FROM countries
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all countries.');
+  }
+}
+
 export async function fetchCityIdByNameAndCountry(
   name_eng: string, 
   country_id: string, 
@@ -2198,6 +2217,54 @@ export async function isShipmentExistsInRoutes(
   } catch(error) {
     console.error(error)
     throw new Error('Failed to check is shipment exists in Routes.')
+  }
+}
+
+export async function isShipmentRouteExists(
+  shipment_id: string,
+  route_id: string,
+) {
+  try {
+    const data = await sql`
+    SELECT COUNT(sr.route_id)
+    FROM shipment_routes as sr
+    WHERE sr.shipment_id = ${shipment_id} AND
+    sr.route_id = ${route_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is shipment route exists.')
+  }
+}
+
+export async function isShipmentRouteUnitExists(
+  shipment_id: string,
+  route_id: string,
+  unit_id: string,
+) {
+  try {
+    const data = await sql`
+    SELECT COUNT(sru.unit_id)
+    FROM shipment_route_units as sru
+    WHERE sru.shipment_id = ${shipment_id} AND
+    sru.route_id = ${route_id} AND
+    sru.unit_id = ${unit_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is shipment route unit exists.')
   }
 }
 

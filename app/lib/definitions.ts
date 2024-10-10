@@ -207,6 +207,12 @@ export type CountryField = {
   name_eng: string;
 }
 
+export type CountryType = {
+  id: string;
+  name_eng: string;
+  is_eu_country: string;
+}
+
 export type VatField = {
   id: string;
   name_eng: string;

@@ -7,11 +7,12 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
 import { rejects } from 'assert';
+import { put } from '@vercel/blob'
 
 const FormSchema = z.object({
     id: z.string(),
@@ -43,12 +44,11 @@ type RateType = z.infer<typeof InvoiceRateFormSchema>;
 
 {/* Invoices */}
 
-export async function createInvoice(formData: InvoiceType) {
+export async function createInvoice(invoice_number: string, formData: InvoiceType) {
 
     const validatedFields = InvoiceFormSchema.safeParse({
         customerId: formData.customerId,
         status: formData.status,
-        number: formData.number,
         performance_date: formData.performance_date,
         date: formData.date,
         payment_date: formData.payment_date,
@@ -66,7 +66,8 @@ export async function createInvoice(formData: InvoiceType) {
         };
       }
 
-    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const { customerId, status, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const number = invoice_number;
     let amountInCents = 0;
     let amountWoVatInCents = 0; 
     let amountVatInCents = 0;
@@ -134,12 +135,11 @@ export async function createInvoice(formData: InvoiceType) {
     redirect('/dashboard/invoices');
 }
 
-export async function createInvoiceFromShipment(shipment_id: string, formData: InvoiceType) {
+export async function createInvoiceFromShipment(shipment_id: string, invoice_number: string, formData: InvoiceType) {
 
     const validatedFields = InvoiceFormSchema.safeParse({
         customerId: formData.customerId,
         status: formData.status,
-        number: formData.number,
         performance_date: formData.performance_date,
         date: formData.date,
         payment_date: formData.payment_date,
@@ -157,7 +157,9 @@ export async function createInvoiceFromShipment(shipment_id: string, formData: I
         };
       }
 
-    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const { customerId, status, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const number = invoice_number;
+
     let amountInCents = 0;
     let amountWoVatInCents = 0; 
     let amountVatInCents = 0;
@@ -233,7 +235,6 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
     const validatedFields = InvoiceFormSchema.safeParse({
         customerId: formData.customerId,
         status: formData.status,
-        number: formData.number,
         performance_date: formData.performance_date,
         date: formData.date,
         payment_date: formData.payment_date,
@@ -250,7 +251,10 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
           };
     }
 
-    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const { customerId, status, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const invoice = await fetchInvoiceFullById(id);
+    const number = invoice.number
+
     let amountInCents = 0;
     let amountWoVatInCents = 0; 
     let amountVatInCents = 0;
@@ -261,7 +265,7 @@ export async function updateInvoice(id: string, formData: InvoiceType) {
     let formatedAgreementId;
     if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
 
-    const invoice = await fetchInvoiceByNumber(number);
+
     await deleteInvoiceRatesFromDb(invoice.id);
     await saveInvoiceRatesToDb(number, date, organisation_id, currency_id);
     const currencies = await fetchCurrenciesRatesByDate(
@@ -322,7 +326,6 @@ export async function updateInvoiceFromShipment(shipment_id: string, invoice_id:
     const validatedFields = InvoiceFormSchema.safeParse({
         customerId: formData.customerId,
         status: formData.status,
-        number: formData.number,
         performance_date: formData.performance_date,
         date: formData.date,
         payment_date: formData.payment_date,
@@ -339,7 +342,10 @@ export async function updateInvoiceFromShipment(shipment_id: string, invoice_id:
           };
     }
 
-    const { customerId, status, number, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const { customerId, status, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    const invoice = await fetchInvoiceFullById(invoice_id)
+    const number = invoice.number
+
     let amountInCents = 0;
     let amountWoVatInCents = 0; 
     let amountVatInCents = 0;
@@ -350,7 +356,6 @@ export async function updateInvoiceFromShipment(shipment_id: string, invoice_id:
     let formatedAgreementId;
     if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
 
-    const invoice = await fetchInvoiceByNumber(number);
     await deleteInvoiceRatesFromDb(invoice.id);
     await saveShipmentInvoiceRatesToDb(invoice, date, organisation_id, currency_id, shipment_id);
     const currencies = await fetchCurrenciesRatesByDate(
@@ -828,11 +833,12 @@ export async function authenticate(
 {/* Customers */}
 
 export async function createCustomer(formData: CustomerTypeSchema) {
+
     const validatedFields = CustomerFormSchema.safeParse({
         name_eng: formData.name_eng,
         email: formData.email,
-        image_url: formData.image_url,
         name_hun: formData.name_hun,
+        image: formData.image,
         code: formData.code,
         country_id: formData.country_id,
         address_eng: formData.address_eng,
@@ -847,12 +853,31 @@ export async function createCustomer(formData: CustomerTypeSchema) {
         };
       }
 
-    const { name_eng, email, image_url, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+    const { name_eng, email, image, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+
+    /*
+    const image = formData.image as File;
+    const blob = await put(image.name, image, {
+        access: 'public'
+    }); */
+
+    console.log(`
+            INSERT INTO customers 
+            ( name, email, code, image_url, address_eng, 
+             address_hun, name_hun, vat_number_eu)
+            VALUES (${name_eng}, ${email}, ${image}, ${code}, 
+            ${address_eng}, ${address_hun}, ${name_hun}, 
+            ${vat_number_eu})
+        `)
 
     try{
         await sql`
-            INSERT INTO customers (name, email, image_url)
-            VALUES (${name_eng}, ${email}, ${image_url})
+            INSERT INTO customers 
+            ( name, email, code, address_eng, 
+             address_hun, name_hun, vat_number_eu)
+            VALUES (${name_eng}, ${email}, ${code}, 
+            ${address_eng}, ${address_hun}, ${name_hun}, 
+            ${vat_number_eu})
         `;
     } catch (error) {
         return {
@@ -1012,7 +1037,6 @@ export async function createRouteFromShipment(shipment_id: string, formData: Rou
     );
 
     if(route_id === '') {
-    
         try {
             await sql`
             INSERT INTO routes (start_city_id, end_city_id, transport_type_id) VALUES
@@ -1022,7 +1046,8 @@ export async function createRouteFromShipment(shipment_id: string, formData: Rou
         } catch (error) {
             console.log(error);
             return {
-                message: 'Database error: Failed to Create Route from Shipment'
+                success: false,
+                error: 'Database error: Failed to Create Route from Shipment'
             };
         }
 
@@ -1030,14 +1055,17 @@ export async function createRouteFromShipment(shipment_id: string, formData: Rou
             start_city_id, end_city_id, transport_type_id
         );
     }
-     
-    if (route_id !== '') {
-     await createShipmentRouteInDb(shipment_id, route_id);
-    }
 
+    if(await isShipmentRouteExists(shipment_id, route_id)) {
+        throw new Error('This route already exists')
+    } else {
+        if (route_id !== '') {
+            await createShipmentRouteInDb(shipment_id, route_id);
+        }
+    }
+     
     revalidatePath(`/dashboard/shipments/${shipment_id}/edit?tab=1`);
     redirect(`/dashboard/shipments/${shipment_id}/edit?tab=1`);
-
 }
 
 export async function updateRouteFromShipment(shipment_id: string, route_id: string, formData: RouteTypeSchema) {
@@ -1159,12 +1187,16 @@ export async function createUnit(shipment_id: string, route_id: string, formData
 export async function addUnitToShipmentRoute(shipment_id: string, route_id: string, unit_id: string) {
 
     try {
-        await sql`
+        if(await isShipmentRouteUnitExists(shipment_id, route_id, unit_id)) {
+            return { message: 'This unit is already selected'}
+        } else {
+            await sql`
             INSERT INTO shipment_route_units (shipment_id, route_id, unit_id) VALUES
             (${shipment_id}, ${route_id}, ${unit_id})
             `;
-        revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/add_unit`);
-        return { message: 'Unit added to shipment route units' };
+            revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/add_unit`);
+            return { message: 'Unit added to shipment route units' };
+        }
     } catch (error) {
         return {
             message: 'Database Error: Failed to Add Unit to from Shipment Route Units.',

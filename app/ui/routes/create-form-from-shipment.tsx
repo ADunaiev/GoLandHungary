@@ -15,6 +15,7 @@ import { useState } from 'react'
 import React from "react"
 import { CreateCityFromShipment, ViewCities } from "../cities/buttons"
 import { useDebouncedCallback } from "use-debounce"
+import { toast } from "sonner"
 
 export default function CreateRouteFormFromShipments({
     cities,
@@ -49,8 +50,9 @@ export default function CreateRouteFormFromShipments({
     const onSubmit = useDebouncedCallback( async (data:RouteTypeSchema) => {
         try {
             await createRouteWithShipmentId(data);
+            toast.success('Route is added!')
         } catch(e) {
-            console.log(e);
+            toast.error(String(e))
         }
     }, 300);
 

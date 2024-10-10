@@ -34,8 +34,8 @@ export async function SelectUnit({shipment_id, route_id, unit_id} :
   const handleSubmit = async () => {
       
       try {
-        await addUnitToSRU();
-        toast.success('Unit is added to shipment!')
+        const response = await addUnitToSRU();
+        toast(response.message)
       } catch(e) {
         toast.error('Something was wrong');
       }

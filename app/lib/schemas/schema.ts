@@ -48,7 +48,7 @@ export const InvoiceFormSchema = z.object({
     amount_managerial_with_vat: z.coerce.number().
         gt(0, { message: 'Amount should be greater than 0.'}),
     */
-    number: z.string(),
+    //number: z.string(),
     });
 
 export type InvoiceType = z.infer<typeof InvoiceFormSchema>;
@@ -176,6 +176,14 @@ export const CurrencyRateFormSchema = z.object({
 
 export type CurrencyRateTypeSchema = z.infer<typeof CurrencyRateFormSchema>
 
+const MAX_FILE_SIZE = 4.5 * 1024 * 1024; 
+const ACCEPTED_IMAGE_TYPES = [ 
+    "image/jpeg", 
+    "image/jpg", 
+    "image/png", 
+    "image/webp", 
+];
+
 export const CustomerFormSchema = z.object({
     name_eng: z.string().min(1, {
         message: 'Please enter name',
@@ -192,7 +200,8 @@ export const CustomerFormSchema = z.object({
     country_id: z.string().min(1, {
         message: 'Please select country',
     }),
-    image_url: z.string(),
+    image: z
+        .any(),
     name_hun: z.string(),
     address_hun: z.string(),
     vat_number_eu: z.string(),
