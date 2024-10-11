@@ -1,6 +1,6 @@
 'use client'
 
-import { CurrencyField, RouteField, ServiceField, ShipmentField, VatField } from "@/app/lib/definitions"
+import { CurrencyField, RouteField, RouteFullType, ServiceField, ServiceType, ShipmentField, VatField } from "@/app/lib/definitions"
 import { InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment } from "@/app/lib/schemas/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -25,13 +25,13 @@ export default function CreateRateFormFromShipments({
     services,
     currencies,
     vat_rates,
-    routes,
+    route,
     shipment,
 } : {
-    services: ServiceField[],
+    services: ServiceType[],
     currencies: CurrencyField[],
     vat_rates: VatField[],
-    routes: RouteField[],
+    route: RouteFullType,
     shipment: ShipmentField,
 }) {
     const createRateWithShipmentId = createRateFromShipment.bind(null, shipment.id);
@@ -92,13 +92,17 @@ export default function CreateRateFormFromShipments({
                             <option key="service" value="" disabled>
                                 Select a service
                             </option>
-                            {services.map((service) => (
-                                <option 
-                                key={service.id} 
-                                value={service.id} >
-                                    {service.name_eng}
-                                </option>
-                            ))}
+                            {services.map((service) => {
+                                if(!service.is_key_service || service.transport_type_id === route.transport_type_id) {
+                                    return (
+                                        <option 
+                                            key={service.id} 
+                                            value={service.id} >
+                                                {service.name_eng}
+                                        </option>
+                                        )
+                                }
+                            })}
                         </select>
                         <TruckIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
                     </div>
@@ -124,18 +128,12 @@ export default function CreateRateFormFromShipments({
                             id="route"
                             {...register('route_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                            defaultValue=""
+                            defaultValue={route.id}
+                            disabled
                             >
-                            <option key="route" value="" disabled>
-                                Select a route
+                            <option key="route" value={route.id} disabled>
+                                {route.start_city_name + ' - ' + route.end_city_name}
                             </option>
-                            {routes.map((route) => (
-                                <option 
-                                key={route.id} 
-                                value={route.id} >
-                                    {route.start_end}
-                                </option>
-                            ))}
                         </select>
                         <ForwardIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
                     </div>

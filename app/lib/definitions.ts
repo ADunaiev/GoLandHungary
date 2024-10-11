@@ -202,6 +202,13 @@ export type ServiceField = {
   name_eng: string;
 }
 
+export type ServiceType = {
+  id: string;
+  name_eng: string;
+  is_key_service: boolean;
+  transport_type_id: string;
+}
+
 export type CountryField = {
   id: string;
   name_eng: string;

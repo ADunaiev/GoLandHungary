@@ -45,6 +45,21 @@ export function CreateRateFromShipment({ id }:{
     );
 }
 
+export function CreateRateFromShipmentWithRoute({ shipment_id, route_id }:{
+  shipment_id: string,
+  route_id: string,
+}) {
+    return (
+      <Link
+        href={`/dashboard/shipments/${shipment_id}/edit/${route_id}/create_rate`}
+        className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+      >
+        <span className="hidden md:block">Create Rate</span>{' '}
+        <PlusIcon className="h-5 md:m1-4" />
+      </Link>
+    );
+}
+
 export function UpdateRate({ id }: { id: string }) {
   return (
     <Link

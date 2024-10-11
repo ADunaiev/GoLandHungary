@@ -1,8 +1,8 @@
 'use client'
 
-import { ArrowDownIcon, PencilIcon, PlusIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowDownIcon, ChevronDoubleDownIcon, ChevronDownIcon, PencilIcon, PlusIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { deleteShipment, deleteInvoiceRate, addUnitToShipmentRoute, deleteUnitFromShipmentRoute } from '@/app/lib/actions';
+import { deleteShipment, deleteInvoiceRate, addUnitToShipmentRoute, deleteUnitFromShipmentRoute, addUnitToAllShipmentRoutes } from '@/app/lib/actions';
 import { toast } from 'sonner';
 
 export function CreateUnit({shipment_id, route_id} : { shipment_id: string, route_id: string }) {
@@ -27,7 +27,7 @@ export function AddUnit({shipment_id, route_id} : { shipment_id: string, route_i
   );
 }
 
-export async function SelectUnit({shipment_id, route_id, unit_id} : 
+export function SelectUnit({shipment_id, route_id, unit_id} : 
   { shipment_id: string, route_id: string, unit_id: string }) {
   const addUnitToSRU = addUnitToShipmentRoute.bind(null, shipment_id, route_id, unit_id);
   
@@ -45,7 +45,31 @@ export async function SelectUnit({shipment_id, route_id, unit_id} :
     <form action={handleSubmit}>
       <button className="rounded-md border p-2 hover:bg-gray-100">
         <span className="sr-only">Select</span>
-          <ArrowDownIcon className="w-5" />
+          <ChevronDownIcon className="w-5" />
+      </button>
+    </form>
+  );
+}
+
+export function SelectUnitInAllRoutes({shipment_id, route_id, unit_id} : 
+  { shipment_id: string, route_id: string, unit_id: string }) {
+  const addUnitToAllSRU = addUnitToAllShipmentRoutes.bind(null, shipment_id, route_id, unit_id);
+  
+  const handleSubmit = async () => {
+      
+      try {
+        const response = await addUnitToAllSRU();
+        toast(response.message)
+      } catch(e) {
+        toast.error('Something was wrong');
+      }
+  }
+
+  return (
+    <form action={handleSubmit}>
+      <button className="rounded-md border p-2 hover:bg-gray-100">
+        <span className="sr-only">Select</span>
+          <ChevronDoubleDownIcon className="w-5" />
       </button>
     </form>
   );

@@ -39,6 +39,7 @@ import {
   InvoiceTotalAmountsType,
   CurrencyRate,
   CountryType,
+  ServiceType,
 } from './definitions';
 import { formatCurrency, formatNeededCurrency, getCorrectDate } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
@@ -111,7 +112,7 @@ export async function fetchCardData() {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
     // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
+    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices WHERE customer_id IS NOT NULL`;
     const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
     const invoiceStatusPromise = sql`SELECT
          SUM(CASE WHEN status = 'paid' THEN amount_managerial_with_vat ELSE 0 END) AS "paid",
@@ -363,6 +364,25 @@ export async function fetchServices() {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch services.');
+  }
+}
+
+export async function fetchServicesFull() {
+  try {
+    const data = await sql<ServiceType>`
+      SELECT
+        id,
+        name_eng,
+        is_key_service,
+        transport_type_id
+      FROM services
+      ORDER BY name_eng ASC
+    `;
+
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch services full.');
   }
 }
 

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function Page({ params }:{ params: { id: string, route_id: string, } }) {
   const shipment_id = params.id;
-  const route_id = params.id;
+  const route_id = params.route_id;
 
   const [services, currencies, vat_rates, route, shipment] = await Promise.all([
     fetchServicesFull(),

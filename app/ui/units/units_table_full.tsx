@@ -1,6 +1,5 @@
-import { RouteFullType, ShipmentRouteUnitTypeFull } from "@/app/lib/definitions";
-import Image from "next/image";
-import { DeleteUnitFromShipmentRoute, SelectUnit } from "./buttons";
+
+import { SelectUnit, SelectUnitInAllRoutes } from "./buttons";
 import { fetchFilteredUnits } from "@/app/lib/data";
 
 export default async function UnitsTable({ shipment_id, route_id, query, currentPage } : {
@@ -30,6 +29,7 @@ export default async function UnitsTable({ shipment_id, route_id, query, current
                         </div>
                         <div className="flex justify-end gap-2">
                             <SelectUnit shipment_id={shipment_id} route_id={route_id}  unit_id={unit.id} />
+                            <SelectUnitInAllRoutes shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} />
                       </div>
                     </div>
                   </div>
@@ -64,6 +64,7 @@ export default async function UnitsTable({ shipment_id, route_id, query, current
                       <td className="whitespace-nowrap py-3 pl-6 pr-3">
                         <div className="flex justify-end gap-3">
                           <SelectUnit shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} />
+                          <SelectUnitInAllRoutes shipment_id={shipment_id} route_id={route_id} unit_id={unit.id} />
                         </div>
                       </td>
                     </tr>

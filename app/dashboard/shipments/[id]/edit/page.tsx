@@ -28,6 +28,7 @@ import CreateInvoiceFromShipmentForm from '@/app/ui/invoices/create-form-from-sh
 import { CreateInvoiceFromShipment } from '@/app/ui/invoices/buttons';
 import InvoicesTableShipment from '@/app/ui/invoices/invoices-table-shipment';
 import RatesTableShipmentTab from '@/app/ui/rates/rates-table-shipment-tab';
+import ShipmentRoutesRatesTable from '@/app/ui/rates/routes-rates-table';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -129,11 +130,8 @@ export default async function Page({ params, searchParams }: {
                 </TabPanel>
                 <TabPanel key='rates-tab-panel'>
                     {/* Rate Tab */}
-                    <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
-                        <CreateRateFromShipment id={id}/>
-                    </div>
                     <Suspense fallback={<InvoiceRatesTableSkeleton/>}>
-                        <RatesTableShipmentTab shipment_id={id} rates={rates}/>
+                        <ShipmentRoutesRatesTable shipment_id={id} routes={routes} rates={rates}/>
                     </Suspense>
                 </TabPanel>
                 <TabPanel key='invoices-tab-panel'>

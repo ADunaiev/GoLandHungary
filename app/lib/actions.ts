@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -188,10 +188,6 @@ export async function createInvoiceFromShipment(shipment_id: string, invoice_num
     invoiceRates.map(async (invoice_rate) => {
         await updateRateWithInvoiceNumber(invoice_rate.rate_id, number);
     });
-
-    
-
-    
 
     const totals = await fetchInvoiceTotalAmounts(
         date, invoiceRates, invoice_currency_rate, invoice_managerial_rate); 
@@ -1203,6 +1199,32 @@ export async function addUnitToShipmentRoute(shipment_id: string, route_id: stri
         };
     }   
     
+}
+
+export async function addUnitToAllShipmentRoutes(shipment_id: string, route_id: string, unit_id: string) {
+
+    const shipmentRoutes = await fetchRoutesByShipmentId(shipment_id)
+
+    shipmentRoutes.map(async(route) => {
+        try {
+            if(await isShipmentRouteUnitExists(shipment_id, route.id, unit_id)) {
+                return { message: 'This unit is already selected'}
+            } else {
+                await sql`
+                INSERT INTO shipment_route_units (shipment_id, route_id, unit_id) VALUES
+                (${shipment_id}, ${route.id}, ${unit_id})
+                `;
+            }
+        } catch (error) {
+            return {
+                message: 'Database Error: Failed to Add Unit to from Shipment Route Units.',
+            };
+        }   
+    })
+
+    revalidatePath(`/dashboard/shipments/${shipment_id}/edit/${route_id}/add_unit`);
+    return { message: 'Unit added to all shipment routes' };
+ 
 }
 
 export async function deleteUnitFromShipmentRoute(
