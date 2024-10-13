@@ -6,13 +6,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
 import { rejects } from 'assert';
 import { put } from '@vercel/blob'
+import fs from 'node:fs/promises'
 
 const FormSchema = z.object({
     id: z.string(),
@@ -509,10 +510,9 @@ export async function createInvoiceRate(invoice_number: string, isCreateInvoice:
      }
 }
 
-export async function createRateFromShipment(shipment_id: string, formData: RateTypeForShipment) {
-    const validatedFields = RateFormSchemaForShipment.safeParse({
+export async function createRateFromShipment(shipment_id: string, route_id: string, formData: RateTypeWithoutRoute) {
+    const validatedFields = RateTypeWithoutRouteSchema.safeParse({
         service_id: formData.service_id,
-        route_id: formData.route_id,
         rate: formData.rate,
         quantity: formData.quantity,
         currency_id: formData.currency_id,
@@ -526,7 +526,7 @@ export async function createRateFromShipment(shipment_id: string, formData: Rate
         };
     }
 
-    const { service_id, route_id, rate, quantity, currency_id, vat_rate_id}
+    const { service_id, rate, quantity, currency_id, vat_rate_id}
      = validatedFields.data;
 
     let shipmentId, routeId;
@@ -834,7 +834,6 @@ export async function createCustomer(formData: CustomerTypeSchema) {
         name_eng: formData.name_eng,
         email: formData.email,
         name_hun: formData.name_hun,
-        image: formData.image,
         code: formData.code,
         country_id: formData.country_id,
         address_eng: formData.address_eng,
@@ -849,31 +848,30 @@ export async function createCustomer(formData: CustomerTypeSchema) {
         };
       }
 
-    const { name_eng, email, image, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+    const { name_eng, email, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
 
+    const filePath = '/customers/no_avatar.png'
     /*
-    const image = formData.image as File;
-    const blob = await put(image.name, image, {
-        access: 'public'
-    }); */
+    let filePath;
 
-    console.log(`
-            INSERT INTO customers 
-            ( name, email, code, image_url, address_eng, 
-             address_hun, name_hun, vat_number_eu)
-            VALUES (${name_eng}, ${email}, ${image}, ${code}, 
-            ${address_eng}, ${address_hun}, ${name_hun}, 
-            ${vat_number_eu})
-        `)
+    if(image != null) {
+        const arrayBuffer = await image.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+
+        filePath = `/customers/${Date.now()}_${name_eng}`
+        await fs.writeFile(filePath, buffer) 
+    } else {
+        filePath = '/customers/no_avatar.png'
+    } */
 
     try{
         await sql`
             INSERT INTO customers 
             ( name, email, code, address_eng, 
-             address_hun, name_hun, vat_number_eu)
+             address_hun, name_hun, vat_number_eu, country_id, image_url)
             VALUES (${name_eng}, ${email}, ${code}, 
             ${address_eng}, ${address_hun}, ${name_hun}, 
-            ${vat_number_eu})
+            ${vat_number_eu}, ${country_id}, ${filePath})
         `;
     } catch (error) {
         return {
@@ -883,6 +881,80 @@ export async function createCustomer(formData: CustomerTypeSchema) {
 
     revalidatePath('/dashboard/customers');
     redirect('/dashboard/customers');
+}
+
+export async function updateCustomer(id: string, formData: CustomerTypeSchema) {
+
+    const validatedFields = CustomerFormSchema.safeParse({
+        name_eng: formData.name_eng,
+        email: formData.email,
+        name_hun: formData.name_hun,
+        code: formData.code,
+        country_id: formData.country_id,
+        address_eng: formData.address_eng,
+        address_hun: formData.address_hun,
+        vat_number_eu: formData.vat_number_eu,
+    });
+
+    if (!validatedFields.success) {
+        return {
+          errors: validatedFields.error.flatten().fieldErrors,
+          message: 'Missing Fields. Failed to Update Customer.',
+        };
+      }
+
+    const { name_eng, email, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+
+    try{
+        await sql`
+            UPDATE customers
+            SET  
+                name = ${name_eng}, 
+                email = ${email}, 
+                code = ${code}, 
+                address_eng = ${address_eng}, 
+                address_hun = ${address_hun}, 
+                name_hun = ${name_hun}, 
+                vat_number_eu = ${vat_number_eu}, 
+                country_id = ${country_id}
+            WHERE id = ${id}
+        `;
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Update Customer.',
+        };
+    }
+
+    revalidatePath('/dashboard/customers');
+    redirect('/dashboard/customers');
+}
+
+export async function deleteCustomer(customer_id: string) {
+
+    try {
+
+        const isCustomerInShipments = await isCustomerExistsInShipments(customer_id);
+        const isCustomerInInvoices = await isCustomerExistsInInvoices(customer_id);
+        const isCustomerInAgreements = await isCustomerExistsInCustomerAgreements(customer_id);
+
+        if (isCustomerInShipments) {
+            return { message: 'There is shipment with this Customer!' }
+        } else if(isCustomerInInvoices) {
+            return { message: 'There is invoice with this Customer!' }
+        } else if(isCustomerInAgreements) {
+            return { message: 'There is agreement with this Customer!' }
+        }
+        else {
+            await sql`DELETE FROM customers WHERE id = ${customer_id}`;
+            revalidatePath(`/dashboard/customers/`);
+            return { message: 'Customer deleted!' };
+        }
+
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Customer.',
+        };
+    }   
 }
 
 {/* Shipments */}

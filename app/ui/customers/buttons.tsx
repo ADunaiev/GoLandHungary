@@ -1,6 +1,9 @@
+'use client'
+
 import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { deleteInvoice } from '@/app/lib/actions';
+import { deleteCustomer, deleteInvoice } from '@/app/lib/actions';
+import { toast } from 'sonner';
 
 export function CreateCustomer() {
   return (
@@ -17,7 +20,7 @@ export function CreateCustomer() {
 export function UpdateCustomer({ id }: { id: string }) {
   return (
     <Link
-      href={`/dashboard/invoices/${id}/edit`}
+      href={`/dashboard/customers/${id}/edit`}
       className="rounded-md border p-2 hover:bg-gray-100"
     >
       <PencilIcon className="w-5" />
@@ -26,10 +29,19 @@ export function UpdateCustomer({ id }: { id: string }) {
 }
 
 export function DeleteCustomer({ id }: { id: string }) {
-  const deleteInvoiceWithId = deleteInvoice.bind(null, id);
+  const deleteCustomerWithId = deleteCustomer.bind(null, id);
+
+  const handleSubmit = async () => {
+    try {
+      const response = await deleteCustomerWithId();
+      toast(response.message);
+    } catch(e) {
+      console.error(e);
+    }
+  }
 
   return (
-    <form action={deleteInvoiceWithId}>
+    <form action={handleSubmit}>
       <button className="rounded-md border p-2 hover:bg-gray-100">
         <span className="sr-only">Delete</span>
         <TrashIcon className="w-5" />

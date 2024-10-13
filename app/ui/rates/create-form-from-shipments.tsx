@@ -1,7 +1,7 @@
 'use client'
 
 import { CurrencyField, RouteField, RouteFullType, ServiceField, ServiceType, ShipmentField, VatField } from "@/app/lib/definitions"
-import { InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment } from "@/app/lib/schemas/schema"
+import { InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema } from "@/app/lib/schemas/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { createInvoiceRate, createRateFromShipment } from "@/app/lib/actions"
@@ -20,6 +20,7 @@ import { Button } from '@/app/ui/button'
 import { useState } from 'react'
 import React from "react"
 import { useDebouncedCallback } from "use-debounce"
+import { z } from "zod"
 
 export default function CreateRateFormFromShipments({
     services,
@@ -34,16 +35,18 @@ export default function CreateRateFormFromShipments({
     route: RouteFullType,
     shipment: ShipmentField,
 }) {
-    const createRateWithShipmentId = createRateFromShipment.bind(null, shipment.id);
+    const createRateWithShipmentIdAndRouteId = createRateFromShipment.bind(null, shipment.id, route.id);
 
-    const [data, setData] = useState<RateTypeForShipment>();
+
+
+    const [data, setData] = useState<RateTypeWithoutRoute>();
     const {
         register,
         handleSubmit,
         watch,
         formState: {errors}
-    } = useForm<RateTypeForShipment>({
-        resolver: zodResolver(RateFormSchemaForShipment)
+    } = useForm<RateTypeWithoutRoute>({
+        resolver: zodResolver(RateTypeWithoutRouteSchema)
     });
 
     /* Don't forget to delete 
@@ -55,9 +58,9 @@ export default function CreateRateFormFromShipments({
       }, [watch]);
      till here */
 
-    const onSubmit = useDebouncedCallback( async (data:RateTypeForShipment) => {
+    const onSubmit = useDebouncedCallback( async (data:RateTypeWithoutRoute) => {
         try {
-            await createRateWithShipmentId(data);
+            await createRateWithShipmentIdAndRouteId(data);
         } catch(e) {
             console.log(e);
         }
@@ -126,7 +129,6 @@ export default function CreateRateFormFromShipments({
                     <div className="relative">
                         <select
                             id="route"
-                            {...register('route_id')}
                             className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                             defaultValue={route.id}
                             disabled

@@ -115,7 +115,7 @@ export default function CreateInvoiceFromShipmentForm({
 
     routes.map((route) => {
       if(rates.find(rate => rate.route_id === route.id)) {
-        remarks += '\n' + route.start_city_name + ' - ' + route.end_city_name + ':\n';
+        remarks += route.start_city_name + ' - ' + route.end_city_name + ':\n';
         units.map((unit) => {
           if(unit.route_id === route.id) {
             remarks += (unit.vehicle_number === null ? '' : unit.vehicle_number + '/')

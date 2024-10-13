@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { z, ZodType } from 'zod';
+import { zfd } from 'zod-form-data'
 import { firstDayInPreviousMonth, maxDayForInvoicePayment } from '../utils';
 
 export const InvoiceFormSchema = z.object({
@@ -121,6 +122,9 @@ export const ShipmentFormSchema = z.object({
     customer_reference: z.string(),
 });
 
+export const RateTypeWithoutRouteSchema = RateFormSchemaForShipment.omit({route_id: true})
+export type RateTypeWithoutRoute = z.infer<typeof RateTypeWithoutRouteSchema>
+
 export type ShipmentType = z.infer<typeof ShipmentFormSchema>;
 
 export const RouteFormSchema = z.object({
@@ -199,13 +203,8 @@ export const CurrencyRateFormSchema = z.object({
 
 export type CurrencyRateTypeSchema = z.infer<typeof CurrencyRateFormSchema>
 
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024; 
-const ACCEPTED_IMAGE_TYPES = [ 
-    "image/jpeg", 
-    "image/jpg", 
-    "image/png", 
-    "image/webp", 
-];
+const MAX_FILE_SIZE = 500000;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 export const CustomerFormSchema = z.object({
     name_eng: z.string().min(1, {
@@ -223,12 +222,39 @@ export const CustomerFormSchema = z.object({
     country_id: z.string().min(1, {
         message: 'Please select country',
     }),
-    image: z
-        .any(),
     name_hun: z.string(),
     address_hun: z.string(),
     vat_number_eu: z.string(),
 });
 
 export type CustomerTypeSchema = z.infer<typeof CustomerFormSchema>;
+
+/*
+export const CustomerFormSchemaZfd = zfd.formData({
+    name_eng: zfd.text(z.string().min(1, {
+        message: 'Please enter name',
+    })),
+    email: z.string().email({
+        message: 'Please use correct email format'
+    }),
+    code: z.string().min(1, {
+        message: 'Please enter a code',
+    }),
+    address_eng: z.string().min(1, {
+        message: 'Please enter an address',
+    }),
+    country_id: z.string().min(1, {
+        message: 'Please select country',
+    }),
+    image: zfd
+        .file(z.instanceof(FileList)),
+    name_hun: z.string(),
+    address_hun: z.string(),
+    vat_number_eu: z.string(),
+});
+
+export type CustomerTypeSchemaZfd = z.infer<typeof CustomerFormSchemaZfd>;
+*/
+
+
 

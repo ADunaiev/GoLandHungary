@@ -979,11 +979,14 @@ export async function fetchCustomerFullById(id: string) {
       SELECT
         customers.id,
         customers.name,
+        customers.name_hun,
         customers.email,
         customers.image_url,
         customers.code,
         customers.address_eng,
-        customers.vat_number_eu
+        customers.address_hun,
+        customers.vat_number_eu,
+        customers.country_id
       FROM customers
       WHERE customers.id = ${id};
     `;
@@ -2344,5 +2347,67 @@ export async function seedUsers() {
   } catch(error) {
     console.error('Database error: ', error)
     throw new Error('Failed to seed user')
+  }
+}
+
+/* Customers */
+
+export async function isCustomerExistsInShipments(
+  customer_id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(customer_id)
+    FROM shipments
+    WHERE customer_id = ${customer_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is customer exists in Shipments.')
+  }
+}
+
+export async function isCustomerExistsInInvoices(
+  customer_id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(customer_id)
+    FROM invoices
+    WHERE customer_id = ${customer_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is customer exists in Invoices.')
+  }
+}
+
+export async function isCustomerExistsInCustomerAgreements(
+  customer_id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(customer_id)
+    FROM customers_agreements
+    WHERE customer_id = ${customer_id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is customer exists in Customers Agreements.')
   }
 }
