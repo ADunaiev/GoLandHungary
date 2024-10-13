@@ -190,6 +190,8 @@ export type CustomerAgreement = {
   validity: string;
   organisation_id: string;
   customer_id: string;
+  organisation_name: string,
+  customer_name: string,
 };
 
 export type CustomerAgreementField = {

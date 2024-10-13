@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -1564,4 +1564,113 @@ export async function createCurrencyRate(formData: CurrencyRateTypeSchema) {
 
     revalidatePath(`/dashboard/invoices/currencies_rates/view`);
     redirect(`/dashboard/invoices/currencies_rates/view`);
+}
+
+{/* Customer_agreements */}
+
+export async function createCustomerAgreement(formData: CustomerAgreementType) {
+    
+    const validatedFields = CustomerAgreementFormSchema.safeParse({
+        number: formData.number,
+        date: formData.date,
+        validity: formData.validity,
+        organisation_id: formData.organisation_id,
+        customer_id: formData.customer_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { number, date, validity, organisation_id, customer_id }
+     = validatedFields.data;
+
+    const formattedDate = date.toISOString().split('T')[0];
+    const formattedValidity = validity.toISOString().split('T')[0];
+ 
+    try {
+        await sql`
+        INSERT INTO customers_agreements (number, date, validity, organisation_id, customer_id) VALUES
+        (${number}, ${formattedDate}, ${formattedValidity}, ${organisation_id}, ${customer_id})
+        `;
+
+    } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Insert Customer Agreement to Db.'
+        };
+    }
+
+    revalidatePath(`/dashboard/customers/agreements/view`);
+    redirect(`/dashboard/customers/agreements/view`);
+}
+
+export async function updateCustomerAgreement(customer_agreement_id: string, formData: CustomerAgreementType) {
+    
+    const validatedFields = CustomerAgreementFormSchema.safeParse({
+        number: formData.number,
+        date: formData.date,
+        validity: formData.validity,
+        organisation_id: formData.organisation_id,
+        customer_id: formData.customer_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { number, date, validity, organisation_id, customer_id }
+     = validatedFields.data;
+
+    const formattedDate = date.toISOString().split('T')[0];
+    const formattedValidity = validity.toISOString().split('T')[0];
+ 
+    try {
+        await sql`
+        UPDATE customers_agreements 
+        SET  
+            number = ${number}, 
+            date = ${formattedDate}, 
+            validity = ${formattedValidity}, 
+            organisation_id = ${organisation_id}, 
+            customer_id = ${customer_id}
+        WHERE id = ${customer_agreement_id}
+        `;
+
+    } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Update Customer Agreement.'
+        };
+    }
+
+    revalidatePath(`/dashboard/customers/agreements/view`);
+    redirect(`/dashboard/customers/agreements/view`);
+}
+
+export async function deleteCustomerAgreement(id: string) {
+
+    try {
+        const isCustomerAgreementInInvoices = await isCustomerAgreementExistsInInvoices(id);
+
+
+        if (isCustomerAgreementInInvoices) {
+            return { message: 'There is Invoice with this Customer Agreement!' }
+        } else {
+            console.log(`DELETE FROM customers_agreements WHERE id = ${id}`)
+            await sql`DELETE FROM customers_agreements WHERE id = ${id}`;
+            revalidatePath(`/dashboard/customers/agreements`);
+            return { message: 'Customer agreement deleted!' };
+        }
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Customer.',
+        };
+    }   
 }

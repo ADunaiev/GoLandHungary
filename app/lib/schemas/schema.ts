@@ -229,6 +229,26 @@ export const CustomerFormSchema = z.object({
 
 export type CustomerTypeSchema = z.infer<typeof CustomerFormSchema>;
 
+export const CustomerAgreementFormSchema = z.object({
+    number: z.string().min(1, {
+        message: 'Please enter number',
+    }),
+    date: z.coerce.date({
+        message: 'Please enter agreement date'
+    }),
+    validity: z.coerce.date({
+        message: 'Please enter validity date'
+    }),
+    organisation_id: z.string().min(1, {
+        message: 'Please select organisation',
+    }),
+    customer_id: z.string().min(1, {
+        message: 'Please select customer',
+    }),
+});
+
+export type CustomerAgreementType = z.infer<typeof CustomerAgreementFormSchema>;
+
 /*
 export const CustomerFormSchemaZfd = zfd.formData({
     name_eng: zfd.text(z.string().min(1, {

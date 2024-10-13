@@ -6,6 +6,7 @@ import { TableRowSkeleton } from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { CreateCustomer } from '@/app/ui/customers/buttons';
 import { fetchCountries } from '@/app/lib/data';
+import { ViewCustomerAgreements } from '@/app/ui/customer_agreements/buttons';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -27,6 +28,7 @@ export default async function Page({
       <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
         <Search placeholder="Search customers..." />
         <CreateCustomer />
+        <ViewCustomerAgreements />
       </div>
       <Suspense key={query} fallback={<TableRowSkeleton />}>
         <Table query={query} />

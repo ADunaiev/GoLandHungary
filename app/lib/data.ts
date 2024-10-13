@@ -2411,3 +2411,112 @@ export async function isCustomerExistsInCustomerAgreements(
     throw new Error('Failed to check is customer exists in Customers Agreements.')
   }
 }
+
+/* Customers agreements */
+
+export async function fetchFilteredCustomersAgreements(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+  
+  try {
+    const data = await sql<CustomerAgreement>`
+    SELECT 
+    ca.id,
+    ca.number, 
+    ca.date,
+    ca.validity, 
+    o.id as organisation_id,
+    o.name_eng as organisation_name,
+    c.id as customer_id,
+    c.name as customer_name
+    FROM customers_agreements AS ca
+    LEFT JOIN organisations AS o ON ca.organisation_id = o.id
+    LEFT JOIN customers AS c ON ca.customer_id = c.id
+		WHERE
+		    ca.number ILIKE ${`%${query}%`} OR
+		    ca.date::text ILIKE ${`%${query}%`} OR
+		    ca.validity::text ILIKE ${`%${query}%`} OR
+		    o.name_eng ILIKE ${`%${query}%`} OR
+		    c.name ILIKE ${`%${query}%`} 
+		ORDER BY ca.number DESC
+    LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+	  `;
+
+    const agreements = data.rows;
+
+    return agreements;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch filtered customers agreements.');
+  }
+}
+
+export async function isCustomerAgreementExistsInInvoices(
+  id: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(agreement_id)
+    FROM invoices
+    WHERE agreement_id = ${id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is customer agreement exists in Invoices.')
+  }
+}
+
+export async function fetchCustomersAgreementsPages(query: string) {
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM customers_agreements AS ca
+    LEFT JOIN organisations AS o ON ca.organisation_id = o.id
+    LEFT JOIN customers AS c ON ca.customer_id = c.id
+		WHERE
+		    ca.number ILIKE ${`%${query}%`} OR
+		    ca.date::text ILIKE ${`%${query}%`} OR
+		    ca.validity::text ILIKE ${`%${query}%`} OR
+		    o.name_eng ILIKE ${`%${query}%`} OR
+		    c.name ILIKE ${`%${query}%`} 
+  `;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of customers agreements.');
+  }
+}
+
+export async function fetchCustomerAgreementById(id: string) {
+  try {
+    const data = await sql<CustomerAgreement>`
+      SELECT 
+      ca.id,
+      ca.number, 
+      ca.date,
+      ca.validity, 
+      o.id as organisation_id,
+      o.name_eng as organisation_name,
+      c.id as customer_id,
+      c.name as customer_name
+      FROM customers_agreements AS ca
+      LEFT JOIN organisations AS o ON ca.organisation_id = o.id
+      LEFT JOIN customers AS c ON ca.customer_id = c.id
+      WHERE ca.id = ${id};
+    `;
+
+    const agreement = data.rows;
+    return agreement[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch customer agreement by id.');
+  }
+}
