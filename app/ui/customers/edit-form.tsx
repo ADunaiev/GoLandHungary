@@ -46,7 +46,12 @@ export default function CustomerEditForm({ customer, countries }:
 
     const onSubmit = useDebouncedCallback( async (data: CustomerTypeSchema) => {
         try {
-            await updateCustomerWithId(data);
+            const response = await updateCustomerWithId(data);
+            if(response.message === '') {
+                toast.success('Customer is updated')
+            } else {
+                toast.error('There is customer with this code already')
+            }
         } catch(e) {
             console.error(e)
         }

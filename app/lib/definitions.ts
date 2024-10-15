@@ -385,4 +385,18 @@ export type InvoiceTotalAmountsType = {
   amount_managerial_with_vat: number,
 }
 
+export type EuVatValidationData = {
+  country_code: string,
+  vat_number: string,
+  format_valid: boolean,
+  checksum_valid: boolean,
+  registration_info: EuVatRegistrationInfo,
+}
+
+export type EuVatRegistrationInfo = {
+  is_registered: boolean,
+  name: string,
+  address: string,
+}
+
 

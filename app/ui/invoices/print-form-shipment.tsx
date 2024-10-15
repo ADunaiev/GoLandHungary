@@ -150,7 +150,7 @@ export const InvoicePrint = ({invoice}:{invoice: InvoicesTable}) => {
                   <td className="font-bold">Adószám: / TAX Number:</td>
                 </tr>
                 <tr>
-                  <td>{organisation.code}</td>
+                  <td>{organisation.vat_number_local}</td>
                   <td>{customer.code}</td>
                 </tr>
                 <tr>

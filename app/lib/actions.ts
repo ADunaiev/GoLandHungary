@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -848,7 +848,15 @@ export async function createCustomer(formData: CustomerTypeSchema) {
         };
       }
 
+    
+
     const { name_eng, email, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+
+    if(await isCustomerCodeExistsInDb(code)) {
+        return { 
+            message: 'Customer with this code is exists in database'
+        }
+    }
 
     const filePath = '/customers/no_avatar.png'
     /*
@@ -904,6 +912,12 @@ export async function updateCustomer(id: string, formData: CustomerTypeSchema) {
       }
 
     const { name_eng, email, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+
+    if(await isCustomerCodeExistsInDb(code)) {
+        return { 
+            message: 'Customer with this code is exists in database'
+        }
+    }
 
     try{
         await sql`

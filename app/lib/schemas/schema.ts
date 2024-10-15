@@ -224,7 +224,8 @@ export const CustomerFormSchema = z.object({
     }),
     name_hun: z.string(),
     address_hun: z.string(),
-    vat_number_eu: z.string(),
+    vat_number_eu: z
+        .string(),
 });
 
 export type CustomerTypeSchema = z.infer<typeof CustomerFormSchema>;

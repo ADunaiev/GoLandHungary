@@ -1,6 +1,6 @@
 'use client'
 
-import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { deleteCustomer, deleteInvoice } from '@/app/lib/actions';
 import { toast } from 'sonner';

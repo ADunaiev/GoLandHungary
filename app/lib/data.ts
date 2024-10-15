@@ -2520,3 +2520,23 @@ export async function fetchCustomerAgreementById(id: string) {
     throw new Error('Failed to fetch customer agreement by id.');
   }
 }
+
+export async function isCustomerCodeExistsInDb(
+  code: string) {
+  try {
+    const data = await sql`
+    SELECT COUNT(id)
+    FROM customers
+    WHERE code = ${code}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is customer code exists in database.')
+  }
+}
