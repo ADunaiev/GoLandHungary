@@ -2540,3 +2540,35 @@ export async function isCustomerCodeExistsInDb(
     throw new Error('Failed to check is customer code exists in database.')
   }
 }
+
+export async function fetchCustomersAgreementsByCustomerId(
+  customer_id: string,
+) {
+  
+  try {
+    const data = await sql<CustomerAgreement>`
+    SELECT 
+    ca.id,
+    ca.number, 
+    ca.date,
+    ca.validity, 
+    o.id as organisation_id,
+    o.name_eng as organisation_name,
+    c.id as customer_id,
+    c.name as customer_name
+    FROM customers_agreements AS ca
+    LEFT JOIN organisations AS o ON ca.organisation_id = o.id
+    LEFT JOIN customers AS c ON ca.customer_id = c.id
+		WHERE
+      c.id = ${customer_id}
+		ORDER BY ca.number DESC
+	  `;
+
+    const agreements = data.rows;
+
+    return agreements;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch customers agreements by customer id.');
+  }
+}

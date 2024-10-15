@@ -20,6 +20,7 @@ import { Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import EditRatesTable from '@/app/ui/rates/edit-rates-table';
 import CustomerEditForm from '@/app/ui/customers/edit-form';
+import CustomersAgreementsTableByCustomer from '@/app/ui/customer_agreements/customer_tabel';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -50,6 +51,10 @@ export default async function Page({ params }: { params: { id: string } }) {
         />
 
         <CustomerEditForm customer={customer} countries={countries} />
+        <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+            <h1>Agreements</h1>
+        </div>
+        <CustomersAgreementsTableByCustomer customer_id={customer.id} />
         </main>
     );
 }
