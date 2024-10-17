@@ -12,6 +12,12 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <title>GOLAND Hungary App.</title>
+        <link 
+          rel="icon" 
+          href='/customers/goland_hun_logo_transparent.png?<generated>' 
+          type='image/<generated>'
+          sizes='<generated>'
+        />
       </head>
       <Toaster />
       <body className={`${inter.className} antialiased`}>{children}</body>

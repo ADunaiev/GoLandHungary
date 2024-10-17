@@ -18,7 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { createCustomer } from '@/app/lib/actions';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFormState } from 'react-dom';
 import { CustomerFormSchema, CustomerTypeSchema } from '@/app/lib/schemas/schema';
 import { useForm } from 'react-hook-form';
@@ -27,13 +27,16 @@ import { toast } from 'sonner';
 import { useDebouncedCallback } from 'use-debounce';
 import { z } from 'zod';
 import useSWR, { Fetcher } from 'swr'
-import { CheckEuVatNumber } from './buttons';
 
-export default function Form({ countries }:
-  { countries: CountryType[],
-   }) {
+export default function FormByVat({ countries, vat_number }:
+  { 
+    countries: CountryType[],
+    vat_number: string,
+  }) {
 
     const [data, setData] = useState<CustomerTypeSchema>();
+    const [companyData, setCompanyData] = useState<EuVatValidationData>();
+
     const {
         register,
         handleSubmit,
@@ -43,8 +46,14 @@ export default function Form({ countries }:
         resolver: zodResolver(CustomerFormSchema)
     });
 
+
+
     const country_id = watch('country_id')
     const eu_vat_number = watch('vat_number_eu')
+
+    useEffect(() => {
+      
+    })
 
     const onSubmit = useDebouncedCallback( async (data: CustomerTypeSchema) => {
         try {
@@ -267,41 +276,35 @@ export default function Form({ countries }:
           </div>
 
           {/* Customer vat number eu */}
-          <div className="flex mb-4">
-            <div>
-              <label htmlFor="vat_number" className="mb-2 block text-sm font-medium">
-                Enter customer European VAT number
-              </label>
-              <div className="relative mt-2 rounded-md">
-                <div className="relative">
-                  <input
-                    id="vat_number"
-                    type="text"
-                    step="0.01"
-                    {...register('vat_number_eu')}
-                    placeholder="Enter customer European VAT number"
-                    className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                    aria-describedby="vat-number-error"
-                  />
-                  <CurrencyEuroIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+          <div className="mb-4">
+            <label htmlFor="vat_number" className="mb-2 block text-sm font-medium">
+              Enter customer European VAT number
+            </label>
+            <div className="relative mt-2 rounded-md">
+              <div className="relative">
+                <input
+                  id="vat_number"
+                  type="text"
+                  step="0.01"
+                  {...register('vat_number_eu')}
+                  placeholder="Enter customer European VAT number"
+                  className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
+                  aria-describedby="vat-number-error"
+                />
+                <CurrencyEuroIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
 
-                </div>
-                <div id="vat-number-error" aria-live="polite" aria-atomic="true">
-                    { 
-                    errors.vat_number_eu?.message && 
-                    (
-                        <p className="mt-2 text-sm text-red-500" key={errors.vat_number_eu.message}>
-                            {errors.vat_number_eu.message}
-                        </p>
-                        )                      
-                    }
-                </div>
+              </div>
+              <div id="vat-number-error" aria-live="polite" aria-atomic="true">
+                  { 
+                  errors.vat_number_eu?.message && 
+                  (
+                      <p className="mt-2 text-sm text-red-500" key={errors.vat_number_eu.message}>
+                          {errors.vat_number_eu.message}
+                      </p>
+                      )                      
+                  }
               </div>
             </div>
-            <div className='ml-5 mt-4'>
-              <CheckEuVatNumber vat_number={eu_vat_number} />
-            </div>
-            
           </div>
 
           {/* Email */}

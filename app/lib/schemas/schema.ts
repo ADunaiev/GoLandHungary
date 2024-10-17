@@ -250,11 +250,10 @@ export const CustomerAgreementFormSchema = z.object({
 
 export type CustomerAgreementType = z.infer<typeof CustomerAgreementFormSchema>;
 
-/*
-export const CustomerFormSchemaZfd = zfd.formData({
-    name_eng: zfd.text(z.string().min(1, {
+export const SupplierFormSchema = z.object({
+    name_eng: z.string().min(1, {
         message: 'Please enter name',
-    })),
+    }),
     email: z.string().email({
         message: 'Please use correct email format'
     }),
@@ -267,15 +266,13 @@ export const CustomerFormSchemaZfd = zfd.formData({
     country_id: z.string().min(1, {
         message: 'Please select country',
     }),
-    image: zfd
-        .file(z.instanceof(FileList)),
     name_hun: z.string(),
     address_hun: z.string(),
-    vat_number_eu: z.string(),
+    vat_number_eu: z
+        .string(),
 });
 
-export type CustomerTypeSchemaZfd = z.infer<typeof CustomerFormSchemaZfd>;
-*/
+export type SupplierTypeSchema = z.infer<typeof SupplierFormSchema>;
 
 
 

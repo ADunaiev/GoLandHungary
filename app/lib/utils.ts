@@ -1,4 +1,4 @@
-import { Revenue } from './definitions';
+import { EuVatValidationData, EuVatValidationJsonResponse, Revenue } from './definitions';
 
 export const formatCurrency = (amount: number) => {
   return (amount / 100).toLocaleString('en-GB', {
@@ -113,3 +113,31 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
     totalPages,
   ];
 };
+
+/*
+export async function fetchEuVatNumber(vat_number: string) : Promise<EuVatValidationData> {
+    
+  try {
+    const response = await fetch(`https://api.vatcheckapi.com/v2/check?vat_number=${vat_number}&apikey=vat_live_g4pRU7XQFoR7a41cY3J16MVyRDNIHnMzZPFVa6Wz`)
+  
+    const { data, errors } : EuVatValidationJsonResponse = await response.json()
+  
+    if(response.ok) {
+      const companyData = data?.companyData
+      
+      if(companyData) {
+        
+        return companyData;
+      } else {
+        throw new Error(`VAT Number is not valid`)
+      }
+    } else {
+      throw new Error('Request has wrong response')
+    }
+
+  } catch(error) {
+    console.error('Fetch error: ', error)
+    throw new Error('Failed to fetch company by VAT')
+  }
+
+} */

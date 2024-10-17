@@ -113,10 +113,9 @@ export default function EditShipmentForm ({
                     <input
                     id="date"
                     type="date"
-                    disabled
                     placeholder='dd-mm-yyyy'
                     {...register('date')}
-                    defaultValue={new Date(formattedDate).toISOString().split('T')[0]}
+                    value={new Date(formattedDate).toISOString().split('T')[0]}
                     aria-describedby="date-error"
                     className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
                     />

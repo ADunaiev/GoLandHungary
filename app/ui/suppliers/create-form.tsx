@@ -20,43 +20,43 @@ import { Button } from '@/app/ui/button';
 import { createCustomer } from '@/app/lib/actions';
 import { useState } from 'react';
 import { useFormState } from 'react-dom';
-import { CustomerFormSchema, CustomerTypeSchema } from '@/app/lib/schemas/schema';
+import { CustomerFormSchema, CustomerTypeSchema, SupplierFormSchema, SupplierTypeSchema } from '@/app/lib/schemas/schema';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useDebouncedCallback } from 'use-debounce';
 import { z } from 'zod';
 import useSWR, { Fetcher } from 'swr'
-import { CheckEuVatNumber } from './buttons';
+import { CreateSupplier } from './buttons';
+import { createSupplier } from '@/app/lib/actions';
 
-export default function Form({ countries }:
+export default function SupplierCreateForm({ countries }:
   { countries: CountryType[],
    }) {
 
-    const [data, setData] = useState<CustomerTypeSchema>();
+    const [data, setData] = useState<SupplierTypeSchema>();
     const {
         register,
         handleSubmit,
         watch,
         formState: {errors}
-    } = useForm<CustomerTypeSchema>({
-        resolver: zodResolver(CustomerFormSchema)
+    } = useForm<SupplierTypeSchema>({
+        resolver: zodResolver(SupplierFormSchema)
     });
 
     const country_id = watch('country_id')
-    const eu_vat_number = watch('vat_number_eu')
 
-    const onSubmit = useDebouncedCallback( async (data: CustomerTypeSchema) => {
+    const onSubmit = useDebouncedCallback( async (data: SupplierTypeSchema) => {
         try {
-            const response = await createCustomer(data);
+            const response = await createSupplier(data);
             if(response.message = '') {
-              toast.success('Customer is added!')
+              toast.success('Supplier is added!')
             } else {
-              toast.error('There is customer with this code already')
+              toast.error('There is supplier with this code already')
             }
             
         } catch(e) {
-            console.error(e)
+            console.log(String(e))
         }
     }, 300);
 
@@ -68,10 +68,10 @@ export default function Form({ countries }:
       }} >
         <div key='inputs' className="rounded-md bg-gray-50 p-4 md:p-6">
           
-          {/* Customer Name */}
+          {/* Supplier Name */}
           <div className="mb-4">
             <label htmlFor="name" className="mb-2 block text-sm font-medium">
-              Enter customer name
+              Enter supplier name
             </label>
             <div className="relative mt-2 rounded-md">
               <div className="relative">
@@ -80,7 +80,7 @@ export default function Form({ countries }:
                   type="text"
                   step="0.01"
                   {...register('name_eng')}
-                  placeholder="Enter customer name"
+                  placeholder="Enter supplier name"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="name-error"
                 />
@@ -100,10 +100,10 @@ export default function Form({ countries }:
             </div>
           </div>
 
-          {/* Customer Name Hun */}
+          {/* Supplier Name Hun */}
           <div className="mb-4">
             <label htmlFor="name_hun" className="mb-2 block text-sm font-medium">
-              Enter customer name in hungarian
+              Enter supplier name in hungarian
             </label>
             <div className="relative mt-2 rounded-md">
               <div className="relative">
@@ -112,7 +112,7 @@ export default function Form({ countries }:
                   type="text"
                   step="0.01"
                   {...register('name_hun')}
-                  placeholder="Enter customer name in hungarian"
+                  placeholder="Enter supplier name in hungarian"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="name-hun-error"
                 />
@@ -132,10 +132,10 @@ export default function Form({ countries }:
             </div>
           </div>
 
-          {/* Customer Address */}
+          {/* Supplier Address */}
           <div className="mb-4">
             <label htmlFor="address" className="mb-2 block text-sm font-medium">
-              Enter customer address
+              Enter supplier address
             </label>
             <div className="relative mt-2 rounded-md">
               <div className="relative">
@@ -144,7 +144,7 @@ export default function Form({ countries }:
                   type="text"
                   step="0.01"
                   {...register('address_eng')}
-                  placeholder="Enter customer address"
+                  placeholder="Enter supplier address"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="address-error"
                 />
@@ -202,10 +202,10 @@ export default function Form({ countries }:
             </div>
           </div>
 
-          {/* Customer Address Hun */}
+          {/* Supplier Address Hun */}
           <div className="mb-4">
             <label htmlFor="address_hun" className="mb-2 block text-sm font-medium">
-              Enter customer address in hungarian
+              Enter supplier address in hungarian
             </label>
             <div className="relative mt-2 rounded-md">
               <div className="relative">
@@ -214,7 +214,7 @@ export default function Form({ countries }:
                   type="text"
                   step="0.01"
                   {...register('address_hun')}
-                  placeholder="Enter customer address in hungarian"
+                  placeholder="Enter supplier address in hungarian"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="address-hun-error"
                 />
@@ -234,10 +234,10 @@ export default function Form({ countries }:
             </div>
           </div>
 
-          {/* Customer code */}
+          {/* Supplier code */}
           <div className="mb-4">
             <label htmlFor="code" className="mb-2 block text-sm font-medium">
-              Enter customer code
+              Enter supplier code
             </label>
             <div className="relative mt-2 rounded-md">
               <div className="relative">
@@ -246,7 +246,7 @@ export default function Form({ countries }:
                   type="text"
                   step="0.01"
                   {...register('code')}
-                  placeholder="Enter customer code"
+                  placeholder="Enter supplier code"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="code-error"
                 />
@@ -266,11 +266,11 @@ export default function Form({ countries }:
             </div>
           </div>
 
-          {/* Customer vat number eu */}
+          {/* Supplier vat number eu */}
           <div className="flex mb-4">
             <div>
               <label htmlFor="vat_number" className="mb-2 block text-sm font-medium">
-                Enter customer European VAT number
+                Enter supplier European VAT number
               </label>
               <div className="relative mt-2 rounded-md">
                 <div className="relative">
@@ -279,7 +279,7 @@ export default function Form({ countries }:
                     type="text"
                     step="0.01"
                     {...register('vat_number_eu')}
-                    placeholder="Enter customer European VAT number"
+                    placeholder="Enter supplier European VAT number"
                     className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                     aria-describedby="vat-number-error"
                   />
@@ -298,16 +298,13 @@ export default function Form({ countries }:
                 </div>
               </div>
             </div>
-            <div className='ml-5 mt-4'>
-              <CheckEuVatNumber vat_number={eu_vat_number} />
-            </div>
-            
+        
           </div>
 
           {/* Email */}
           <div className="mb-4">
             <label htmlFor="email" className="mb-2 block text-sm font-medium">
-              Enter customer email
+              Enter supplier email
             </label>
             <div className="relative mt-2 rounded-md">
               <div className="relative">
@@ -316,7 +313,7 @@ export default function Form({ countries }:
                   type="email"
                   step="0.01"
                   {...register('email')}
-                  placeholder="Enter customer email"
+                  placeholder="Enter supplier email"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="email-error"
                 />
@@ -336,36 +333,6 @@ export default function Form({ countries }:
             </div>
           </div>
 
-          {/* Avatar 
-          <div className="mb-4">
-            <label htmlFor="avatar" className="mb-2 block text-sm font-medium">
-              Choose customer avatar
-            </label>
-            <div className="relative mt-2 rounded-md">
-              <div className="relative">
-                <input
-                  id="avatar"
-                  type="file"
-                  {...register('image')}
-                  placeholder="Enter customer avatar"
-                  className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                  aria-describedby="avatar-error"
-                />
-                <UserIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
-              </div>
-              <div id="avatar-error" aria-live="polite" aria-atomic="true">
-                  { 
-                  errors.image?.message && 
-                  (
-                      <p className="mt-2 text-sm text-red-500" key={String(errors.image.message)}>
-                          {String(errors.image.message)}
-                      </p>
-                      )                      
-                  }
-              </div>
-            </div>
-          </div> */}
-
         </div>
         <div key='buttons' className="mt-6 flex justify-end gap-4">
           <Link
@@ -374,7 +341,7 @@ export default function Form({ countries }:
           >
             Cancel
           </Link>
-          <Button type="submit">Create Customer</Button>
+          <Button type="submit">Create Supplier</Button>
         </div>
       </form>
     );

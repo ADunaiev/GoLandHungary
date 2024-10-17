@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, SupplierFormSchema, SupplierTypeSchema, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
 import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { rejects } from 'assert';
 import { put } from '@vercel/blob'
 import fs from 'node:fs/promises'
+import { isSupplierCodeExistsInDb, isSupplierExistsInSupplierAgreements, isSupplierExistsInSupplierInvoices } from './suppliers/data';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -1687,4 +1688,141 @@ export async function deleteCustomerAgreement(id: string) {
             message: 'Database Error: Failed to Delete Customer.',
         };
     }   
+}
+
+{/* Suppliers */}
+
+export async function createSupplier(formData: SupplierTypeSchema) {
+
+    const validatedFields = SupplierFormSchema.safeParse({
+        name_eng: formData.name_eng,
+        email: formData.email,
+        name_hun: formData.name_hun,
+        code: formData.code,
+        country_id: formData.country_id,
+        address_eng: formData.address_eng,
+        address_hun: formData.address_hun,
+        vat_number_eu: formData.vat_number_eu,
+    });
+
+    if (!validatedFields.success) {
+        return {
+          errors: validatedFields.error.flatten().fieldErrors,
+          message: 'Missing Fields. Failed to Create Supplier.',
+        };
+      }
+
+    const { name_eng, email, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+
+    if(await isSupplierCodeExistsInDb(code)) {
+        return { 
+            message: 'Supplier with this code is exists in database'
+        }
+    }
+
+    const filePath = '/customers/no_avatar.png'
+
+    try{
+        await sql`
+            INSERT INTO suppliers 
+            ( name_eng, email, code, address_eng, 
+             address_hun, name_hun, eu_vat_number, country_id, image_url)
+            VALUES (${name_eng}, ${email}, ${code}, 
+            ${address_eng}, ${address_hun}, ${name_hun}, 
+            ${vat_number_eu}, ${country_id}, ${filePath})
+        `;
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Create Supplier.',
+        };
+    }
+
+    revalidatePath('/dashboard/suppliers');
+    redirect('/dashboard/suppliers');
+}
+
+export async function updateSupplier(id: string, formData: SupplierTypeSchema) {
+
+    const validatedFields = SupplierFormSchema.safeParse({
+        name_eng: formData.name_eng,
+        email: formData.email,
+        name_hun: formData.name_hun,
+        code: formData.code,
+        country_id: formData.country_id,
+        address_eng: formData.address_eng,
+        address_hun: formData.address_hun,
+        vat_number_eu: formData.vat_number_eu,
+    });
+
+    if (!validatedFields.success) {
+        return {
+          errors: validatedFields.error.flatten().fieldErrors,
+          message: 'Missing Fields. Failed to Update Supplier.',
+        };
+      }
+
+    const { name_eng, email, name_hun, code, country_id, address_eng, address_hun, vat_number_eu } = validatedFields.data;
+
+    if(await isSupplierCodeExistsInDb(code)) {
+        return { 
+            message: 'Supplier with this code is exists in database'
+        }
+    }
+
+    try{
+        await sql`
+            UPDATE suppliers
+            SET  
+                name_eng = ${name_eng}, 
+                email = ${email}, 
+                code = ${code}, 
+                address_eng = ${address_eng}, 
+                address_hun = ${address_hun}, 
+                name_hun = ${name_hun}, 
+                eu_vat_number = ${vat_number_eu}, 
+                country_id = ${country_id}
+            WHERE id = ${id}
+        `;
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Update Supplier.',
+        };
+    }
+
+    revalidatePath('/dashboard/suppliers');
+    redirect('/dashboard/suppliers');
+}
+
+export async function deleteSupplier(id:string) {
+    try{
+
+        const isSupplierInInvoices = await isSupplierExistsInSupplierInvoices(id)
+        const isSupplierInAgreements = await isSupplierExistsInSupplierAgreements(id)
+
+        if(isSupplierInInvoices) {
+            return {
+                message: 'There is invoice with this supplier!'
+            }
+        } else if(isSupplierInAgreements) {
+            return {
+                message: 'There is agreement with this supplier!'
+            }
+        } else {
+            try {
+                await sql`DELETE FROM suppliers WHERE id = ${id}`
+                revalidatePath('/dashboard/suppliers')
+                return { message: 'Supplier deleted'}
+            } catch(error) {
+                return {
+                    message: 'Something went wrong'
+                }
+            }
+        }
+
+    } catch(error) {
+        return {
+            message: 'Failed to delete supplier from db',
+        }
+    }
+    
 }

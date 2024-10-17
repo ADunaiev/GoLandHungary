@@ -51,6 +51,20 @@ export type CustomerFull = {
   country_name: string;
 };
 
+export type SupplierFull = {
+  id: string;
+  name_eng: string;
+  name_hun: string;
+  email: string;
+  image_url: string;
+  code: string;
+  address_eng: string;
+  address_hun: string;
+  vat_number_eu: string;
+  country_id: string;
+  country_name: string;
+};
+
 export type Invoice = {
   id: string;
   customer_id: string;
@@ -116,6 +130,16 @@ export type InvoiceTypeFull = {
 export type CustomersTableType = {
   id: string;
   name: string;
+  email: string;
+  image_url: string;
+  total_invoices: number;
+  total_pending: number;
+  total_paid: number;
+};
+
+export type SuppliersTableType = {
+  id: string;
+  name_eng: string;
   email: string;
   image_url: string;
   total_invoices: number;
@@ -397,6 +421,16 @@ export type EuVatRegistrationInfo = {
   is_registered: boolean,
   name: string,
   address: string,
+  address_parts: string,
+  checked_at: string,
+}
+
+export type EuVatValidationJsonResponse = {
+  data?: {
+    companyData: EuVatValidationData,
+  }
+  errors?: Array<{ message: string }>
+  
 }
 
 

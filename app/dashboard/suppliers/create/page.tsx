@@ -6,6 +6,7 @@ import { db } from '@vercel/postgres'
 import { fetchCountries, fetchCountriesFull } from '@/app/lib/data';
 import { EuVatValidationData, EuVatValidationJsonResponse } from '@/app/lib/definitions';
 import { error } from 'console';
+import SupplierCreateForm from '@/app/ui/suppliers/create-form';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -18,15 +19,15 @@ export default async function Page() {
     <main>
       <Breadcrumbs
         breadcrumbs={[
-          { label: 'Customers', href: '/dashboard/customers' },
+          { label: 'Suppliers', href: '/dashboard/suppliers' },
           {
-            label: 'Create Customer',
-            href: '/dashboard/customers/create',
+            label: 'Create Supplier',
+            href: '/dashboard/suppliers/create',
             active: true,
           },
         ]}
       />
-      <Form countries={countries} />
+      <SupplierCreateForm countries={countries} />
     </main>
   );
 }

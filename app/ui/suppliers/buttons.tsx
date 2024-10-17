@@ -4,23 +4,24 @@ import { CheckIcon, MagnifyingGlassCircleIcon, PencilIcon, PlusIcon, TrashIcon }
 import Link from 'next/link';
 import { deleteCustomer, deleteInvoice } from '@/app/lib/actions';
 import { toast } from 'sonner';
+import { deleteSupplier } from '@/app/lib/actions';
 
-export function CreateCustomer() {
+export function CreateSupplier() {
   return (
     <Link
-      href="/dashboard/customers/create"
+      href="/dashboard/suppliers/create"
       className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
     >
-      <span className="hidden md:block">Create Customer</span>{' '}
+      <span className="hidden md:block">Create Supplier</span>{' '}
       <PlusIcon className="h-5 md:ml-4" />
     </Link>
   );
 }
 
-export function UpdateCustomer({ id }: { id: string }) {
+export function UpdateSupplier({ id }: { id: string }) {
   return (
     <Link
-      href={`/dashboard/customers/${id}/edit`}
+      href={`/dashboard/suppliers/${id}/edit`}
       className="rounded-md border p-2 hover:bg-gray-100"
     >
       <PencilIcon className="w-5" />
@@ -28,12 +29,12 @@ export function UpdateCustomer({ id }: { id: string }) {
   );
 }
 
-export function DeleteCustomer({ id }: { id: string }) {
-  const deleteCustomerWithId = deleteCustomer.bind(null, id);
+export function DeleteSupplier({ id }: { id: string }) {
+  const deleteSupplierWithId = deleteSupplier.bind(null, id);
 
   const handleSubmit = async () => {
     try {
-      const response = await deleteCustomerWithId();
+      const response = await deleteSupplierWithId();
       toast(response.message);
     } catch(e) {
       console.error(e);
@@ -47,17 +48,5 @@ export function DeleteCustomer({ id }: { id: string }) {
         <TrashIcon className="w-5" />
       </button>
     </form>
-  );
-}
-
-export function CheckEuVatNumber({ vat_number }: { vat_number: string }) {
-  return (
-    <Link
-      href={`/dashboard/customers/create/${vat_number}`}
-      className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-    >
-      <span className="hidden md:block">Check VAT</span>{' '}
-      <MagnifyingGlassCircleIcon className="h-5 md:ml-4" />
-    </Link>
   );
 }
