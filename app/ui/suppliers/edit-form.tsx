@@ -1,6 +1,6 @@
 'use client';
 
-import { CountryField, CountryType, CustomerField, EuVatValidationData } from '@/app/lib/definitions';
+import { CountryField, CountryType, CustomerField, EuVatValidationData, SupplierFull } from '@/app/lib/definitions';
 import Link from 'next/link';
 import {
   CheckIcon,
@@ -17,7 +17,7 @@ import {
   CurrencyEuroIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
-import { createCustomer } from '@/app/lib/actions';
+import { createCustomer, updateSupplier } from '@/app/lib/actions';
 import { useState } from 'react';
 import { useFormState } from 'react-dom';
 import { CustomerFormSchema, CustomerTypeSchema, SupplierFormSchema, SupplierTypeSchema } from '@/app/lib/schemas/schema';
@@ -30,9 +30,12 @@ import useSWR, { Fetcher } from 'swr'
 import { CreateSupplier } from './buttons';
 import { createSupplier } from '@/app/lib/actions';
 
-export default function SupplierCreateForm({ countries }:
+export default function SupplierEditForm({ countries, supplier }:
   { countries: CountryType[],
+    supplier: SupplierFull,
    }) {
+
+    const updateSupplierWithId = updateSupplier.bind(null, supplier.id)
 
     const [data, setData] = useState<SupplierTypeSchema>();
     const {
@@ -48,9 +51,9 @@ export default function SupplierCreateForm({ countries }:
 
     const onSubmit = useDebouncedCallback( async (data: SupplierTypeSchema) => {
         try {
-            const response = await createSupplier(data);
+            const response = await updateSupplierWithId(data);
             if(response.message = '') {
-              toast.success('Supplier is added!')
+              toast.success('Supplier is updated!')
             } else {
               toast.error('There is supplier with this code already')
             }
@@ -80,6 +83,7 @@ export default function SupplierCreateForm({ countries }:
                   type="text"
                   step="0.01"
                   {...register('name_eng')}
+                  defaultValue={supplier.name_eng}
                   placeholder="Enter supplier name"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="name-error"
@@ -112,6 +116,7 @@ export default function SupplierCreateForm({ countries }:
                   type="text"
                   step="0.01"
                   {...register('name_hun')}
+                  defaultValue={supplier.name_hun}
                   placeholder="Enter supplier name in hungarian"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="name-hun-error"
@@ -144,6 +149,7 @@ export default function SupplierCreateForm({ countries }:
                   type="text"
                   step="0.01"
                   {...register('address_eng')}
+                  defaultValue={supplier.address_eng}
                   placeholder="Enter supplier address"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="address-error"
@@ -174,7 +180,7 @@ export default function SupplierCreateForm({ countries }:
                     id="country"
                     {...register('country_id')}
                     className="peer block w-full cursor-pointer rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
-                    defaultValue=""
+                    defaultValue={supplier.country_id}
                     aria-describedby="country-error"
                     >
                     <option key="country" value="" disabled>
@@ -214,6 +220,7 @@ export default function SupplierCreateForm({ countries }:
                   type="text"
                   step="0.01"
                   {...register('address_hun')}
+                  defaultValue={supplier.address_hun}
                   placeholder="Enter supplier address in hungarian"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="address-hun-error"
@@ -244,8 +251,8 @@ export default function SupplierCreateForm({ countries }:
                 <input
                   id="code"
                   type="text"
-                  step="0.01"
                   {...register('code')}
+                  defaultValue={supplier.code}
                   placeholder="Enter supplier code"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="code-error"
@@ -277,8 +284,8 @@ export default function SupplierCreateForm({ countries }:
                   <input
                     id="vat_number"
                     type="text"
-                    step="0.01"
                     {...register('eu_vat_number')}
+                    defaultValue={supplier.eu_vat_number}
                     placeholder="Enter supplier European VAT number"
                     className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                     aria-describedby="vat-number-error"
@@ -313,6 +320,7 @@ export default function SupplierCreateForm({ countries }:
                   type="email"
                   step="0.01"
                   {...register('email')}
+                  defaultValue={supplier.email}
                   placeholder="Enter supplier email"
                   className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500"
                   aria-describedby="email-error"
@@ -336,12 +344,12 @@ export default function SupplierCreateForm({ countries }:
         </div>
         <div key='buttons' className="mt-6 flex justify-end gap-4">
           <Link
-            href="/dashboard/customers"
+            href="/dashboard/suppliers"
             className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
           >
             Cancel
           </Link>
-          <Button type="submit">Create Supplier</Button>
+          <Button type="submit">Update Supplier</Button>
         </div>
       </form>
     );

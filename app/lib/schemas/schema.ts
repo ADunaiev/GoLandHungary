@@ -268,8 +268,7 @@ export const SupplierFormSchema = z.object({
     }),
     name_hun: z.string(),
     address_hun: z.string(),
-    vat_number_eu: z
-        .string(),
+    eu_vat_number: z.string(),
 });
 
 export type SupplierTypeSchema = z.infer<typeof SupplierFormSchema>;

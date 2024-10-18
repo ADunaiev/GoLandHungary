@@ -5,15 +5,16 @@ import Image from 'next/image';
 export default function GolandLogo() {
   return (
     <div
-      className={`${lusitana.className} flex flex-row items-center leading-none text-white`}
+      className={`${lusitana.className} flex flex-row items-center leading-none text-black`}
     >
       <Image 
-        src='/customers/goland_hun_logo_transparent.png'
+        src='/goal-hungary-logo.png'
         alt='goland_logo'
         height={32}
-        width={32}
+        width={180}
+        priority={true}
       />
-      <p className="ml-4 text-[44px]">Goland</p>
+      {/*<p className="ml-4 text-[44px]">GOLAND</p> */}
     </div>
   );
 }

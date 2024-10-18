@@ -60,7 +60,7 @@ export type SupplierFull = {
   code: string;
   address_eng: string;
   address_hun: string;
-  vat_number_eu: string;
+  eu_vat_number: string;
   country_id: string;
   country_name: string;
 };

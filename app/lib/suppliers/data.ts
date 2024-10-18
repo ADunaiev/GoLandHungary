@@ -119,3 +119,49 @@ export async function isSupplierCodeExistsInDb(
     throw new Error('Failed to check is supplier code exists in database.')
   }
 }
+
+export async function isSupplierCodeExistsInDbEdit(
+  code: string, id: string
+) {
+  try {
+    const data = await sql`
+    SELECT COUNT(id)
+    FROM suppliers
+    WHERE code = ${code} AND id <> ${id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is supplier code exists in database.')
+  }
+}
+
+export async function fetchSupplierFullById(id: string) {
+  try {
+    const data = await sql<SupplierFull>`
+      SELECT
+        suppliers.id,
+        suppliers.name_eng,
+        suppliers.name_hun,
+        suppliers.email,
+        suppliers.image_url,
+        suppliers.code,
+        suppliers.address_eng,
+        suppliers.address_hun,
+        suppliers.eu_vat_number,
+        suppliers.country_id
+      FROM suppliers
+      WHERE suppliers.id = ${id};
+    `;
+
+    return data.rows[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch supplier full by id.');
+  }
+}

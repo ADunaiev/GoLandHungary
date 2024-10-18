@@ -2547,6 +2547,27 @@ export async function isCustomerCodeExistsInDb(
   }
 }
 
+export async function isCustomerCodeExistsInDbEdit(
+  code: string, id: string
+) {
+  try {
+    const data = await sql`
+    SELECT COUNT(id)
+    FROM customers
+    WHERE code = ${code} AND id <> ${id}
+    `;
+
+    if (Number(data.rows[0].count) === 0) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch(error) {
+    console.error(error)
+    throw new Error('Failed to check is customer code exists in database.')
+  }
+}
+
 export async function fetchCustomersAgreementsByCustomerId(
   customer_id: string,
 ) {
