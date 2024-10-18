@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, SupplierFormSchema, SupplierTypeSchema, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, SupplierAgreementFormSchema, SupplierAgreementType, SupplierFormSchema, SupplierTypeSchema, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
 import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerCodeExistsInDbEdit, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
@@ -15,6 +15,7 @@ import { rejects } from 'assert';
 import { put } from '@vercel/blob'
 import fs from 'node:fs/promises'
 import { isSupplierCodeExistsInDb, isSupplierCodeExistsInDbEdit, isSupplierExistsInSupplierAgreements, isSupplierExistsInSupplierInvoices } from './suppliers/data';
+import { isSupplierAgreementExistsInInvoices } from './supplier_agreements/data';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -1829,4 +1830,111 @@ export async function deleteSupplier(id:string) {
         }
     }
     
+}
+
+{/* Supplier agreements */}
+
+export async function createSupplierAgreement(formData: SupplierAgreementType) {
+    
+    const validatedFields = SupplierAgreementFormSchema.safeParse({
+        number: formData.number,
+        date: formData.date,
+        validity: formData.validity,
+        organisation_id: formData.organisation_id,
+        supplier_id: formData.supplier_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { number, date, validity, organisation_id, supplier_id }
+     = validatedFields.data;
+
+    const formattedDate = date.toISOString().split('T')[0];
+    const formattedValidity = validity.toISOString().split('T')[0];
+ 
+    try {
+        await sql`
+        INSERT INTO supplier_agreements (number, date, validity, organisation_id, supplier_id) VALUES
+        (${number}, ${formattedDate}, ${formattedValidity}, ${organisation_id}, ${supplier_id})
+        `;
+
+    } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Insert Supplier Agreement to Db.'
+        };
+    }
+
+    revalidatePath(`/dashboard/suppliers/agreements`);
+    redirect(`/dashboard/suppliers/agreements`);
+}
+
+export async function updateSupplierAgreement(supplier_agreement_id: string, formData: SupplierAgreementType) {
+    
+    const validatedFields = SupplierAgreementFormSchema.safeParse({
+        number: formData.number,
+        date: formData.date,
+        validity: formData.validity,
+        organisation_id: formData.organisation_id,
+        supplier_id: formData.supplier_id,
+    });
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+
+    const { number, date, validity, organisation_id, supplier_id }
+     = validatedFields.data;
+
+    const formattedDate = date.toISOString().split('T')[0];
+    const formattedValidity = validity.toISOString().split('T')[0];
+ 
+    try {
+        await sql`
+        UPDATE supplier_agreements 
+        SET  
+            number = ${number}, 
+            date = ${formattedDate}, 
+            validity = ${formattedValidity}, 
+            organisation_id = ${organisation_id}, 
+            supplier_id = ${supplier_id}
+        WHERE id = ${supplier_agreement_id}
+        `;
+
+    } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Update Supplier Agreement.'
+        };
+    }
+
+    revalidatePath(`/dashboard/suppliers/agreements`);
+    redirect(`/dashboard/suppliers/agreements`);
+}
+
+export async function deleteSupplerAgreement(id: string) {
+
+    try {
+        const isSupplierAgreementInInvoices = await isSupplierAgreementExistsInInvoices(id);
+
+        if (isSupplierAgreementInInvoices) {
+            return { message: 'There is Invoice with this Supplier Agreement!' }
+        } else {
+            await sql`DELETE FROM supplier_agreements WHERE id = ${id}`;
+            revalidatePath(`/dashboard/suppliers/agreements`);
+            return { message: 'Supplier agreement deleted!' };
+        }
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Supplier Agreement.',
+        };
+    }   
 }

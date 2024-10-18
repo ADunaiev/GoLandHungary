@@ -10,6 +10,7 @@ import { ViewCustomerAgreements } from '@/app/ui/customer_agreements/buttons';
 import { CreateSupplier } from '@/app/ui/suppliers/buttons';
 import SuppliersTable from '@/app/ui/suppliers/table';
 import { fetchSuppliersPages } from '@/app/lib/suppliers/data';
+import { ViewSupplierAgreements } from '@/app/ui/supplier_agreements/buttons';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -34,7 +35,7 @@ export default async function Page({
       <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
         <Search placeholder="Search suppliers..." />
         <CreateSupplier />
-        {/* <ViewCustomerAgreements /> */}
+        <ViewSupplierAgreements />
       </div>
       <Suspense key={query} fallback={<TableRowSkeleton />}>
         <SuppliersTable query={query} currentPage={currentPage} />

@@ -143,6 +143,41 @@ export async function fetchCardData() {
   }
 }
 
+export async function fetchExpencesCardData() {
+  try {
+    // You can probably combine these into a single SQL query
+    // However, we are intentionally splitting them to demonstrate
+    // how to initialize multiple queries in parallel with JS.
+    const invoiceCountPromise = sql`SELECT COUNT(*) FROM supplier_invoices WHERE supplier_id IS NOT NULL`;
+    const supplierCountPromise = sql`SELECT COUNT(*) FROM suppliers`;
+    const invoiceStatusPromise = sql`SELECT
+         SUM(CASE WHEN status = 'paid' THEN amount_managerial_with_vat ELSE 0 END) AS "paid",
+         SUM(CASE WHEN status = 'pending' THEN amount_managerial_with_vat ELSE 0 END) AS "pending"
+         FROM supplier_invoices`;
+
+    const data = await Promise.all([
+      invoiceCountPromise,
+      supplierCountPromise,
+      invoiceStatusPromise,
+    ]);
+
+    const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
+    const numberOfSuppliers = Number(data[1].rows[0].count ?? '0');
+    const totalPaidInvoices = formatCurrency(data[2].rows[0].paid ?? '0');
+    const totalPendingInvoices = formatCurrency(data[2].rows[0].pending ?? '0');
+
+    return {
+      numberOfSuppliers,
+      numberOfInvoices,
+      totalPaidInvoices,
+      totalPendingInvoices,
+    };
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch expenses card data.');
+  }
+}
+
 export async function fetchTransportCardData() {
   try {
     // You can probably combine these into a single SQL query

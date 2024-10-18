@@ -81,6 +81,15 @@ export function maxDayForInvoicePayment() {
 
 }
 
+export function defaultValidityDayForAgreements() {
+  const today = new Date()
+  const offset = today.getTimezoneOffset() * 60000;
+  const formattedDate = new Date(today.getTime() - offset);
+
+  return new Date(formattedDate.getFullYear() + 1, formattedDate.getMonth(), formattedDate.getDate())
+
+}
+
 export const generatePagination = (currentPage: number, totalPages: number) => {
   // If the total number of pages is 7 or less,
   // display all pages without any ellipsis.

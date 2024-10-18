@@ -13,7 +13,7 @@ import {
     fetchCustomerById,
     fetchCountries,
     fetchCustomerFullById,
-    fetchCountriesFull
+    fetchCustomerAgreementById
 } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import { CreateRate, CreateRateEditInvoice } from '@/app/ui/rates/buttons';
@@ -21,23 +21,27 @@ import { Suspense } from 'react';
 import { InvoiceRatesTableSkeleton } from '@/app/ui/skeletons';
 import EditRatesTable from '@/app/ui/rates/edit-rates-table';
 import CustomerEditForm from '@/app/ui/customers/edit-form';
-import CustomersAgreementsTableByCustomer from '@/app/ui/customer_agreements/customer_tabel';
-import { fetchSupplierFullById } from '@/app/lib/suppliers/data';
-import SupplierEditForm from '@/app/ui/suppliers/edit-form';
-import SuppliersAgreementsTableBySupplier from '@/app/ui/supplier_agreements/supplier-table';
+import EditCustomerAgreementForm from '@/app/ui/customer_agreements/edit-form';
+import { fetchSuppliers } from '@/app/lib/suppliers/data';
+import { fetchSupplierAgreementById } from '@/app/lib/supplier_agreements/data';
+import EditSupplierAgreementForm from '@/app/ui/supplier_agreements/edit-form';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
  
-export default async function Page({ params }: { params: { id: string } }) {
-    const supplier_id = params.id;
+export default async function Page({ params }: 
+    { params: { 
+        agreement_id: string,
+    } }) {
+    const agreement_id = params.agreement_id;
 
-    const [supplier, countries] = await Promise.all([
-        fetchSupplierFullById(supplier_id),
-        fetchCountriesFull(),
+    const [organisations, suppliers, supplier_agreement] = await Promise.all([
+        fetchOrganisations(),
+        fetchSuppliers(),
+        fetchSupplierAgreementById(agreement_id),
       ])
 
-    if(!supplier) {
+    if(!supplier_agreement) {
         notFound();
     }
 
@@ -46,19 +50,16 @@ export default async function Page({ params }: { params: { id: string } }) {
         <Breadcrumbs
             breadcrumbs={[
             { label: 'Suppliers', href: '/dashboard/suppliers' },
+            { label: 'Agreements', href: '/dashboard/suppliers/agreements' },
             {
-                label: 'Edit Supplier',
-                href: `/dashboard/suppliers/${supplier_id}/edit`,
+                label: 'Edit Agreement',
+                href: `/dashboard/suppliers/agreements/${agreement_id}/edit`,
                 active: true,
             },
             ]}
         />
 
-        <SupplierEditForm supplier={supplier} countries={countries} />
-        <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
-            <h1>Agreements</h1>
-        </div>
-            <SuppliersAgreementsTableBySupplier supplier_id={supplier.id} />
+            <EditSupplierAgreementForm organisations={organisations} suppliers={suppliers} supplier_agreement={supplier_agreement}/> 
         </main>
     );
 }

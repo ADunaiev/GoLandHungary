@@ -162,6 +162,11 @@ export type CustomerField = {
   name: string;
 };
 
+export type SupplierField = {
+  id: string;
+  name_eng: string;
+};
+
 export type Currency = {
   id: string;
   name_eng: string;
@@ -216,6 +221,17 @@ export type CustomerAgreement = {
   customer_id: string;
   organisation_name: string,
   customer_name: string,
+};
+
+export type SupplierAgreement = {
+  id: string;
+  number: string;
+  date: string;
+  validity: string;
+  organisation_id: string;
+  supplier_id: string;
+  organisation_name: string,
+  supplier_name: string,
 };
 
 export type CustomerAgreementField = {

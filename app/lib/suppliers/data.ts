@@ -1,5 +1,5 @@
 import { sql } from "@vercel/postgres";
-import { SupplierFull, SuppliersTableType } from "../definitions";
+import { SupplierField, SupplierFull, SuppliersTableType } from "../definitions";
 import { formatCurrency } from "../utils";
 
 const ITEMS_PER_PAGE = 10;
@@ -163,5 +163,23 @@ export async function fetchSupplierFullById(id: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch supplier full by id.');
+  }
+}
+
+export async function fetchSuppliers() {
+  try {
+    const data = await sql<SupplierField>`
+      SELECT
+        id,
+        name_eng
+      FROM suppliers
+      ORDER BY name_eng ASC
+    `;
+
+    const suppliers = data.rows;
+    return suppliers;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all suppliers.');
   }
 }

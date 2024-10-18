@@ -273,5 +273,25 @@ export const SupplierFormSchema = z.object({
 
 export type SupplierTypeSchema = z.infer<typeof SupplierFormSchema>;
 
+export const SupplierAgreementFormSchema = z.object({
+    number: z.string().min(1, {
+        message: 'Please enter number',
+    }),
+    date: z.coerce.date({
+        message: 'Please enter agreement date'
+    }),
+    validity: z.coerce.date({
+        message: 'Please enter validity date'
+    }),
+    organisation_id: z.string().min(1, {
+        message: 'Please select organisation',
+    }),
+    supplier_id: z.string().min(1, {
+        message: 'Please select supplier',
+    }),
+});
+
+export type SupplierAgreementType = z.infer<typeof SupplierAgreementFormSchema>;
+
 
 
