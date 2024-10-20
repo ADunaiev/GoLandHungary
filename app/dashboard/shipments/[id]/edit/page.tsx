@@ -25,10 +25,10 @@ import ShipmentInfoPanel from '@/app/ui/shipments/shipment-info';
 import ShipmentRoutesUnitsTable from '@/app/ui/units/routes-units-table';
 import InvoicesTableData from '@/app/ui/invoices/table';
 import CreateInvoiceFromShipmentForm from '@/app/ui/invoices/create-form-from-shipment';
-import { CreateInvoiceFromShipment } from '@/app/ui/invoices/buttons';
 import InvoicesTableShipment from '@/app/ui/invoices/invoices-table-shipment';
 import RatesTableShipmentTab from '@/app/ui/rates/rates-table-shipment-tab';
 import ShipmentRoutesRatesTable from '@/app/ui/rates/routes-rates-table';
+import { CreateInvoiceFromShipment } from '@/app/ui/invoices/buttons';
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -137,7 +137,7 @@ export default async function Page({ params, searchParams }: {
                 <TabPanel key='invoices-tab-panel'>
                     {/* Invoice Tab */}
                     <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
-                        <CreateInvoiceFromShipment shipment_id={id} />
+                        <CreateInvoiceFromShipment id={id} />
                     </div>
                     <Suspense fallback={<InvoiceRatesTableSkeleton />}>
                         <InvoicesTableShipment query='' currentPage={1} invoices={invoices} shipment_id={id}/>
