@@ -143,3 +143,21 @@ export async function fetchSupplierAgreementById(id: string) {
     throw new Error('Failed to fetch supplier agreement by id.');
   }
 }
+
+export async function fetchSupplierAgreements() {
+  try {
+    const data = await sql<SupplierAgreement>`
+    SELECT sa.id, sa.number, sa.date, sa.validity, 
+    sa.organisation_id, sa.supplier_id
+    FROM supplier_agreements as sa
+    ORDER BY sa.number ASC
+    `;
+
+    const agreements = data.rows;
+
+    return agreements;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch supplier agreements.');
+  }
+}

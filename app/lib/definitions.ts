@@ -107,6 +107,19 @@ export type InvoicesTable = {
   short_name: string;
 };
 
+export type SupplierInvoicesTable = {
+  id: string;
+  supplier_id: string;
+  name_eng: string;
+  number: string;
+  email: string;
+  image_url: string;
+  date: string;
+  amount: number;
+  status: 'pending' | 'paid';
+  short_name: string;
+};
+
 export type InvoiceTypeFull = {
   id: string;
   customer_id: string;
@@ -351,6 +364,26 @@ export type RateTable = {
   vat_rate_rate: number;
   vat_rate_name: string;
   quantity: number;
+};
+
+export type ExpenseRateTable = {
+  id: string;
+  route_id: string;
+  start_point_name: string;
+  end_point_name: string;
+  service_id: string;
+  service_name: string;
+  rate: number;
+  currency_id: string;
+  currency_name: string;
+  currency_rate: number;
+  vat_rate_id: string;
+  vat_rate_rate: number;
+  vat_rate_name: string;
+  quantity: number;
+  net_amount: number;
+  vat_amount: number;
+  gross_amount: number;
 };
 
 export type InvoiceRateDbData = {

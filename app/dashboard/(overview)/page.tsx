@@ -38,7 +38,7 @@ export default async function Page() {
                 </Suspense>
             </div>
             <h1 className={`${lusitana.className} mt-4 mb-4 text-xl md:text-2xl`}>
-                Expences
+                Expenses
             </h1>
             <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <Suspense fallback={<CardsSkeleton/>}>

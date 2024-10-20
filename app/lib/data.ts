@@ -41,6 +41,7 @@ import {
   CountryType,
   ServiceType,
   SuppliersTableType,
+  ExpenseRateTable,
 } from './definitions';
 import { formatCurrency, formatNeededCurrency, getCorrectDate } from './utils';
 import { InvoiceType, RateType } from './schemas/schema';
@@ -342,7 +343,7 @@ export async function fetchRateById(id: string) {
       ...rate,
       rate: rate.rate / 100
     }));
-    console.log(rate);
+
     return rate[0];
   } catch(error) {
     console.log('Database error: ', error);
@@ -486,8 +487,8 @@ export async function fetchFilteredCustomers(
 		  customers.email,
 		  customers.image_url,
 		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
+		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount_managerial_with_vat ELSE 0 END) AS total_pending,
+		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount_managerial_with_vat ELSE 0 END) AS total_paid
 		FROM customers
 		LEFT JOIN invoices ON customers.id = invoices.customer_id
 		WHERE
@@ -653,6 +654,35 @@ export async function fetchRatesTabelByInvoiceNumber(invoice_number: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch rates table by invoice number.');
+  }
+}
+
+export async function fetchRatesTableByExpenseNumber(expense_number: string) {
+  try {
+    const data = await sql<ExpenseRateTable>`
+    SELECT r.id, r.net_amount, r.vat_amount, r.gross_amount,
+    ro.id as route_id, c1.name_eng as start_point_name,
+    c2.name_eng as end_point_name, se.id as service_id, 
+    se.name_eng as service_name, r.rate as rate,
+    cu.id as currency_id, cu.short_name as currency_name,
+    vr.id as vat_rate_id, vr.rate as vat_rate_rate,
+    vr.name_eng as vat_rate_name, r.quantity
+    FROM rates as r
+    LEFT JOIN routes as ro ON r.route_id = ro.id
+    LEFT JOIN cities as c1 ON ro.start_city_id = c1.id
+    LEFT JOIN cities as c2 ON ro.end_city_id = c2.id
+    LEFT JOIN services as se ON r.service_id = se.id
+    LEFT JOIN currencies as cu ON r.currency_id = cu.id
+    LEFT JOIN vat_rates as vr ON r.vat_rate_id = vr.id
+    LEFT JOIN supplier_invoice_rates as ir ON r.id = ir.rate_id
+    LEFT JOIN supplier_invoices as i ON ir.supplier_invoice_id = i.id
+    WHERE r.invoice_number = ${expense_number}
+    `;
+
+    return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch rates table by expense number.');
   }
 }
 
@@ -2651,4 +2681,5 @@ export async function fetchCustomersPages(query: string) {
     throw new Error('Failed to fetch total number of customers.');
   }
 }
+
 

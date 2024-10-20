@@ -150,3 +150,4 @@ export async function fetchEuVatNumber(vat_number: string) : Promise<EuVatValida
   }
 
 } */
+

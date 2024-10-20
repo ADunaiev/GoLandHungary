@@ -6,16 +6,17 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, SupplierAgreementFormSchema, SupplierAgreementType, SupplierFormSchema, SupplierTypeSchema, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerCodeExistsInDbEdit, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, ExpenseRateSchema, ExpenseRateType, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, SupplierAgreementFormSchema, SupplierAgreementType, SupplierFormSchema, SupplierInvoiceFormSchema, SupplierInvoiceType, SupplierTypeSchema, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRatesTableByExpenseNumber, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerCodeExistsInDbEdit, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
 import { rejects } from 'assert';
 import { put } from '@vercel/blob'
 import fs from 'node:fs/promises'
-import { isSupplierCodeExistsInDb, isSupplierCodeExistsInDbEdit, isSupplierExistsInSupplierAgreements, isSupplierExistsInSupplierInvoices } from './suppliers/data';
+import { insertSupplierInvoiceRate, isSupplierCodeExistsInDb, isSupplierCodeExistsInDbEdit, isSupplierExistsInSupplierAgreements, isSupplierExistsInSupplierInvoices } from './suppliers/data';
 import { isSupplierAgreementExistsInInvoices } from './supplier_agreements/data';
+import { fetchSupplierInvoiceIdByNumber } from './supplier_invoices/data';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -512,6 +513,75 @@ export async function createInvoiceRate(invoice_number: string, isCreateInvoice:
      }
 }
 
+export async function createExpenseRate(isCreateExpense: boolean, formData: ExpenseRateType) {
+    const validatedFields = ExpenseRateSchema.safeParse({
+        service_id: formData.service_id,
+        route_id: formData.route_id,
+        rate: formData.rate,
+        quantity: formData.quantity,
+        currency_id: formData.currency_id,
+        vat_rate_id: formData.vat_rate_id,
+    });
+
+    console.log('before validation')
+
+    if(!validatedFields.success) {
+        return {
+            success: false,
+            error: validatedFields.error.format(),
+        };
+    }
+    
+
+    const { service_id, route_id, rate, quantity, currency_id, vat_rate_id}
+     = validatedFields.data;
+
+    let routeId, invoice_number;
+
+    if(isCreateExpense) {
+        invoice_number = 'new_expense'
+    } else {
+        invoice_number = ''
+    }
+
+    if(route_id === "") { routeId = null } else { routeId = route_id }
+
+     const rateInCents = rate * 100;
+     const vat_rate = await fetchVatRateById(vat_rate_id);
+     const netAmountInCents = Math.round(rateInCents * quantity);
+     const vatAmountInCents = Math.round(netAmountInCents /100 * vat_rate.rate / 10000) *100;
+     const grossAmountInCents = netAmountInCents + vatAmountInCents;
+    
+     console.log('before db request')
+     try {
+        await sql`
+        INSERT INTO rates (service_id, route_id, rate, quantity, net_amount, currency_id, vat_rate_id, vat_amount, gross_amount, invoice_number) VALUES
+        (${service_id}, ${routeId}, ${rateInCents}, ${quantity}, ${netAmountInCents}, ${currency_id}, ${vat_rate_id}, ${vatAmountInCents}, ${grossAmountInCents}, ${invoice_number})
+        `;
+
+     } catch (error) {
+        console.log(error);
+        return {
+            message: 'Database error: Failed to Create Expense Rate'
+        };
+     }
+
+     const invoice = await fetchInvoiceByNumber(invoice_number);
+     
+    /*
+     if(isCreateExpense) {
+        revalidatePath('/dashboard/expenses/create');
+        redirect('/dashboard/expenses/create');
+     } else {
+        
+        revalidatePath(`/dashboard/expenses/${invoice.id}/edit`);
+        redirect(`/dashboard/expenses/${invoice.id}/edit`);
+        
+     } */
+     revalidatePath('/dashboard/expenses/create');
+     redirect('/dashboard/expenses/create');
+}
+
 export async function createRateFromShipment(shipment_id: string, route_id: string, formData: RateTypeWithoutRoute) {
     const validatedFields = RateTypeWithoutRouteSchema.safeParse({
         service_id: formData.service_id,
@@ -705,7 +775,7 @@ export async function deleteInvoiceRate(id: string) {
 
         console.log('shipment_id = ', rate.shipment_id)
 
-        if(rate.shipment_id === '') {
+        if(rate.shipment_id === null) {
             await sql`DELETE FROM rates WHERE id = ${id}`;
         } else {
             await sql`UPDATE rates SET invoice_number = null WHERE shipment_id = ${rate.shipment_id} AND id = ${id}`;  
@@ -716,6 +786,25 @@ export async function deleteInvoiceRate(id: string) {
     } catch(error) {
         return {
             message: 'Database error. Failed to delete rate.'
+        }
+    }
+}
+
+export async function deleteExpenseRate(id: string) {
+    try {
+        const rate = await fetchRateById(id);
+
+        if(rate.shipment_id === null) {
+            await sql`DELETE FROM rates WHERE id = ${id}`;
+        } else {
+            await sql`UPDATE rates SET invoice_number = null WHERE shipment_id = ${rate.shipment_id} AND id = ${id}`;  
+        }
+        
+        revalidatePath('/dashboard/expenses/create');
+        return { message: 'Deleted rate.'};
+    } catch(error) {
+        return {
+            message: 'Database error. Failed to delete expense rate.'
         }
     }
 }
@@ -1937,4 +2026,139 @@ export async function deleteSupplerAgreement(id: string) {
             message: 'Database Error: Failed to Delete Supplier Agreement.',
         };
     }   
+}
+
+{/* Supplier invoices */}
+
+export async function createSupplierInvoice(formData: SupplierInvoiceType) {
+
+    const validatedFields = SupplierInvoiceFormSchema.safeParse({
+        supplier_id: formData.supplier_id,
+        number: formData.number,
+        status: formData.status,
+        performance_date: formData.performance_date,
+        date: formData.date,
+        payment_date: formData.payment_date,
+        agreement_id: formData.agreement_id,
+        currency_id: formData.currency_id,
+        organisation_id: formData.organisation_id,
+        remarks: formData.remarks,
+    });
+
+    if (!validatedFields.success) {
+        
+        return {
+          success: false,
+          error: validatedFields.error.format(),
+        };
+      }
+
+    const { supplier_id, number, status, performance_date, date, payment_date, agreement_id, currency_id, organisation_id, remarks } = validatedFields.data;
+    
+    let amountInCents = 0;
+    let amountWoVatInCents = 0; 
+    let amountVatInCents = 0;
+    let formatedNumber = number.trim()
+    const formatedDate = date.toISOString().split('T')[0];
+    const formatedPerformanceDate = performance_date.toISOString().split('T')[0];
+    const formatedPaymentDate = payment_date.toISOString().split('T')[0];
+
+    let formatedAgreementId;
+    if(agreement_id === "") { formatedAgreementId = null } else { formatedAgreementId = agreement_id }
+    
+    const expenseRates = await fetchRatesTableByExpenseNumber('new_expense');
+    
+    const currencies = await fetchCurrenciesRatesByDate(
+        date, organisation_id
+    );
+    const managerial_currency_rate_id = await fetchManagerialCurrencyIdByOrganisationId(organisation_id);
+
+    const expense_currency_rate = currencies.find(cr => cr.currency_id === currency_id)?.rate || 1;
+    const expense_managerial_rate = currencies.find(cr => cr.currency_id === managerial_currency_rate_id)?.rate || 100;
+
+    expenseRates.map(expenseRate => {
+        amountWoVatInCents += expenseRate.net_amount;
+        amountVatInCents += expenseRate.vat_amount;
+        amountInCents += expenseRate.gross_amount; 
+    });
+
+    const amount_managerial_wo_vat = Math.round(amountWoVatInCents * expense_currency_rate / expense_managerial_rate);
+    const amount_managerial_with_vat = Math.round(amountInCents * expense_currency_rate / expense_managerial_rate);
+
+    try{
+        await sql`    
+            INSERT INTO supplier_invoices 
+            (
+                number,
+                supplier_id, 
+                status, 
+                performance_date, 
+                date, 
+                payment_date, 
+                agreement_id, 
+                currency_id,
+                organisation_id, 
+                remarks, 
+                amount, 
+                amount_wo_vat,
+                vat_amount, 
+                currency_rate, 
+                amount_managerial_wo_vat, 
+                amount_managerial_with_vat
+            )
+            VALUES
+            (
+                ${formatedNumber},
+                ${supplier_id},
+                ${status},
+                ${formatedPerformanceDate},
+                ${formatedDate},
+                ${formatedPaymentDate},
+                ${formatedAgreementId},
+                ${currency_id},
+                ${organisation_id},
+                ${remarks},
+                ${amountInCents},
+                ${amountWoVatInCents},
+                ${amountVatInCents},
+                ${expense_currency_rate},
+                ${amount_managerial_wo_vat},
+                ${amount_managerial_with_vat}
+            )
+        `;
+
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Create Expense.'
+        };
+    }
+
+    const expense_id = await fetchSupplierInvoiceIdByNumber(formatedNumber)
+
+    expenseRates.map(async (rate) => {
+        await updateRateWithInvoiceNumber(rate.id, formatedNumber)
+        await insertSupplierInvoiceRate(expense_id ,rate.id)
+    })
+
+    revalidatePath('/dashboard/expenses');
+    redirect('/dashboard/expenses');
+}
+
+export async function deleteSupplierInvoice(id: string) {
+    //throw new Error('Failed to delete invoice');
+
+    try {
+        const invoice = await fetchInvoiceFullById(id)
+        await deleteInvoiceRatesFromDb(id);
+        await clearRatesFromInvoiceNumber(invoice.number)
+        await sql`DELETE FROM invoices WHERE id = ${id}`;
+        revalidatePath('/dashboard/invoices');
+        return { message: 'Deleted invoice' };
+    } catch (error) {
+        return {
+            message: 'Database Error: Failed to Delete Invoice.',
+        };
+    }
+    
+    
 }

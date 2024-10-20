@@ -58,8 +58,8 @@ export async function fetchFilteredSuppliers(
 		  s.email,
 		  s.image_url,
 		  COUNT(si.id) AS total_invoices,
-		  SUM(CASE WHEN si.status = 'pending' THEN si.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN si.status = 'paid' THEN si.amount ELSE 0 END) AS total_paid
+		  SUM(CASE WHEN si.status = 'pending' THEN si.amount_managerial_with_vat ELSE 0 END) AS total_pending,
+		  SUM(CASE WHEN si.status = 'paid' THEN si.amount_managerial_with_vat ELSE 0 END) AS total_paid
 		FROM suppliers AS s
 		LEFT JOIN supplier_invoices AS si ON s.id = si.supplier_id
 		WHERE
@@ -181,5 +181,17 @@ export async function fetchSuppliers() {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch all suppliers.');
+  }
+}
+
+export async function insertSupplierInvoiceRate(expense_id: string, rate_id: string) {
+  try {
+    await sql`
+      INSERT INTO supplier_invoice_rates (supplier_invoice_id, rate_id) VALUES
+      (${expense_id}, ${rate_id})
+    `;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to insert supplier invoice rate.');
   }
 }

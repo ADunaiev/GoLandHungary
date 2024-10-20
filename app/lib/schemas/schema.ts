@@ -293,5 +293,46 @@ export const SupplierAgreementFormSchema = z.object({
 
 export type SupplierAgreementType = z.infer<typeof SupplierAgreementFormSchema>;
 
+export const SupplierInvoiceFormSchema = z.object({
+    supplier_id: z.string().min(1, {
+        message: 'Please select a supplier.',
+    }),
+    status: z.enum(['pending', 'paid'], {
+        message: 'Please select an invoice status.',
+      }),
+    date: z
+        .coerce.date({
+            message: 'Please enter invoice date'
+        })
+        .max(new Date(), {
+            message: 'You could not choose future date'
+        }),
+    performance_date: z
+        .coerce.date({
+            message: 'Please enter performance date'
+        })
+        .max(new Date(), {
+            message: 'You could not choose future date'
+        }),        
+    payment_date: z
+        .coerce.date({
+            message: 'Please enter payment date'
+        }),
+    remarks: z.string(),
+    currency_id: z.string().min(1, {
+        message: 'Please select currency'
+    }),
+    agreement_id: z.string(),
+    organisation_id: z.string().min(1, {
+        message: 'Please choose organsation'
+    }),
+    number: z.string()
+        .min(1, {
+            message: 'Please enter invoice number'
+        }),
+    });
 
+export type SupplierInvoiceType = z.infer<typeof SupplierInvoiceFormSchema>;
 
+export const ExpenseRateSchema = InvoiceRateFormSchema.omit({shipment_id: true})
+export type ExpenseRateType = Zod.infer<typeof ExpenseRateSchema>
