@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { CityFormSchema, CityTypeSchema, CurrencyRateFormSchema, CurrencyRateTypeSchema, CustomerAgreementFormSchema, CustomerAgreementType, CustomerFormSchema, CustomerTypeSchema, DriverFormSchema, DriverTypeSchema, ExpenseRateSchema, ExpenseRateType, InvoiceFormSchema, InvoiceRateFormSchema, RateFormSchemaForShipment, RateTypeForShipment, RateTypeWithoutRoute, RateTypeWithoutRouteSchema, RouteFormSchema, RouteTypeSchema, ShipmentFormSchema, ShipmentType, SupplierAgreementFormSchema, SupplierAgreementType, SupplierFormSchema, SupplierInvoiceFormSchema, SupplierInvoiceType, SupplierTypeSchema, UnitFormSchema, UnitTypeSchema, VehicleFormSchema, VehicleTypeSchema } from './schemas/schema';
-import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRatesTableByExpenseNumber, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerCodeExistsInDbEdit, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
+import { clearIsInvoiceMarkInShipmentRates, clearRatesFromInvoiceNumber, createShipmentRouteInDb, deleteInvoiceRatesFromDb, deleteSupplierInvoiceLinksById, deleteSupplierInvoiceRatesByInvoiceNumber, deleteSupplierInvoiceRatesFromDb, fetchCityIdByNameAndCountry, fetchCurrenciesRatesByDate, fetchCurrencyIdByShortName, fetchCurrencyRateByDateOrganisationCurrency, fetchCurrencyRateIdByDate, fetchDriverIdByNameAndPhone, fetchInvoiceById, fetchInvoiceByNumber, fetchInvoiceFullById, fetchInvoiceNumberByRateId, fetchInvoiceRatesByInvoiceId, fetchInvoiceTotalAmounts, fetchManagerialCurrencyIdByOrganisationId, fetchRateById, fetchRatesTableByExpenseNumber, fetchRouteIdByCitiesAndTransport, fetchRoutesByShipmentId, fetchShipmentNumber, fetchUnitIdByNumberAndType, fetchVatRateById, fetchVehicleIdByNumberAndTypes, isCustomerAgreementExistsInInvoices, isCustomerCodeExistsInDb, isCustomerCodeExistsInDbEdit, isCustomerExistsInCustomerAgreements, isCustomerExistsInInvoices, isCustomerExistsInShipments, isRateExistsInShipmentInvoices, isRouteExistsInShipmentRates, isRouteExistsInSRU, isShipmentExistsInRoutes, isShipmentRouteExists, isShipmentRouteUnitExists, saveInvoiceRatesToDb, saveShipmentInvoiceRatesToDb, updateRateWithInvoiceNumber } from './data';
 import ReactPDF from '@react-pdf/renderer';
 import InvoiceToPdf from '../ui/invoices/print-form';
 import { toast } from 'sonner'
@@ -16,7 +16,7 @@ import { put } from '@vercel/blob'
 import fs from 'node:fs/promises'
 import { insertSupplierInvoiceRate, isSupplierCodeExistsInDb, isSupplierCodeExistsInDbEdit, isSupplierExistsInSupplierAgreements, isSupplierExistsInSupplierInvoices } from './suppliers/data';
 import { isSupplierAgreementExistsInInvoices } from './supplier_agreements/data';
-import { fetchSupplierInvoiceIdByNumber } from './supplier_invoices/data';
+import { fetchSupplierInvoiceById, fetchSupplierInvoiceIdByNumber } from './supplier_invoices/data';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -523,8 +523,6 @@ export async function createExpenseRate(isCreateExpense: boolean, formData: Expe
         vat_rate_id: formData.vat_rate_id,
     });
 
-    console.log('before validation')
-
     if(!validatedFields.success) {
         return {
             success: false,
@@ -552,7 +550,6 @@ export async function createExpenseRate(isCreateExpense: boolean, formData: Expe
      const vatAmountInCents = Math.round(netAmountInCents /100 * vat_rate.rate / 10000) *100;
      const grossAmountInCents = netAmountInCents + vatAmountInCents;
     
-     console.log('before db request')
      try {
         await sql`
         INSERT INTO rates (service_id, route_id, rate, quantity, net_amount, currency_id, vat_rate_id, vat_amount, gross_amount, invoice_number) VALUES
@@ -772,8 +769,6 @@ export async function updateRateFromShipment(id: string, rate_id: string, formDa
 export async function deleteInvoiceRate(id: string) {
     try {
         const rate = await fetchRateById(id);
-
-        console.log('shipment_id = ', rate.shipment_id)
 
         if(rate.shipment_id === null) {
             await sql`DELETE FROM rates WHERE id = ${id}`;
@@ -2148,15 +2143,16 @@ export async function deleteSupplierInvoice(id: string) {
     //throw new Error('Failed to delete invoice');
 
     try {
-        const invoice = await fetchInvoiceFullById(id)
-        await deleteInvoiceRatesFromDb(id);
-        await clearRatesFromInvoiceNumber(invoice.number)
-        await sql`DELETE FROM invoices WHERE id = ${id}`;
-        revalidatePath('/dashboard/invoices');
-        return { message: 'Deleted invoice' };
+        const expense = await fetchSupplierInvoiceById(id)
+        await deleteSupplierInvoiceRatesFromDb(id);
+        await deleteSupplierInvoiceRatesByInvoiceNumber(expense.number)
+        await deleteSupplierInvoiceLinksById(id)
+        await sql`DELETE FROM supplier_invoices WHERE id = ${id}`;
+        revalidatePath('/dashboard/expenses');
+        return { message: 'Deleted supplier invoice' };
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Delete Invoice.',
+            message: 'Database Error: Failed to Delete Supplier Invoice.',
         };
     }
     

@@ -930,6 +930,16 @@ export async function deleteInvoiceRatesFromDb(invoice_id: string) {
   }
 }
 
+export async function deleteSupplierInvoiceRatesFromDb(invoice_id: string) {
+  try {
+    await sql`DELETE FROM supplier_invoice_rates WHERE supplier_invoice_id = ${invoice_id}`;
+
+  } catch(error) {
+    console.log('Database error: ', error);
+    throw new Error('Failed to delete supplier invoice rates from database.');
+  }
+}
+
 export async function fetchRatesByInvoiceNumber(invoice_number: string) {
   try {
     const data = await sql<Rate>`
@@ -2388,6 +2398,30 @@ export async function clearRatesFromInvoiceNumber(invoice_number: string) {
   } catch(error) {
     console.error('Database error: ', error)
     throw new Error('Failed to clear invoice number in rates')
+  }
+}
+
+export async function deleteSupplierInvoiceRatesByInvoiceNumber(invoice_number: string) {
+  try {
+    await sql`
+    DELETE FROM rates 
+    WHERE invoice_number = ${invoice_number}
+    `   
+  } catch(error) {
+    console.error('Database error: ', error)
+    throw new Error('Failed to delete supplier invoice rates')
+  }
+}
+
+export async function deleteSupplierInvoiceLinksById(invoice_id: string) {
+  try {
+    await sql`
+    DELETE FROM links_to_income_invoices 
+    WHERE supplier_invoice_id = ${invoice_id}
+    `   
+  } catch(error) {
+    console.error('Database error: ', error)
+    throw new Error('Failed to delete supplier invoice links')
   }
 }
 
